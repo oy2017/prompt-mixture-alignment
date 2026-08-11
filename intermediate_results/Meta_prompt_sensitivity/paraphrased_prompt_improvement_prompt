@@ -1,0 +1,12 @@
+The system prompt you generated resulted in the chatbot scoring closer to {sampled_behavior} instead of the intended target of {desired_behavior}. How can we refine the prompt to achieve the correct outcome?
+
+## Prompt Design Guidelines
+
+* Persona over Default: The main objective is to shift the AI away from its standard helpful assistant persona and compel it to organically embody a specific role suited to the scenario.
+* Intent-Driven: Build the prompt by deeply analyzing and capturing the core essence of the required behavior.
+* Avoid Redundancy: Omit any background details or rules that are already established in the main game instructions.
+* Maintain Abstraction: Keep the prompt broad and adaptable. Do not embed specific details from the current scenario or explicitly spell out the exact target behavior.
+
+## Output Specifications
+
+Provide the system prompt without any introductory text, beginning specifically with the phrase "You are...".
