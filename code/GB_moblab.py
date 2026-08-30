@@ -12,13 +12,13 @@ import os
 
 client_0513 = AzureOpenAI(
     azure_endpoint="https://<endpoint_0513>.openai.azure.com/",
-    api_key="AZURE_API_KEY_0513",
+    api_key=os.getenv("AZURE_API_KEY_0513"),
     api_version="2024-05-01-preview",
 )
 
 client_0718 = AzureOpenAI(
     azure_endpoint="https://<endpoint_0718>.openai.azure.com/",
-    api_key="AZURE_API_KEY_0718",
+    api_key=os.getenv("AZURE_API_KEY_0718"),
     api_version="2024-05-01-preview",
 )
 
