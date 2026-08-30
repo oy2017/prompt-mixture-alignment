@@ -24,29 +24,8 @@ from openai import OpenAI
 from scipy.optimize import Bounds, LinearConstraint, minimize
 from scipy.stats import kstest, ranksums, wasserstein_distance
 
-PROVIDERS = {
-    # backbone used by the paper
-    "openrouter": dict(
-        base_url="https://openrouter.ai/api/v1", key_env="OPENROUTER_API_KEY",
-        gen="openai/gpt-4o-2024-05-13", extract="openai/gpt-4o-mini-2024-07-18",
-        max_tokens=350),
-    # cross-backbone study: Gemini reasons at length before answering, so it
-    # needs a much larger completion budget to reach its bracketed choice.
-    # gemini-3.5-flash is a thinking model: hidden reasoning tokens are charged
-    # against max_tokens while usage.completion_tokens reports only visible
-    # output. Measured truncation rate: 100% at 350, 96% at 500, 0/240 at 2000.
-    "gemini": dict(
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        key_env="GEMINI_API_KEY",
-        gen="gemini-3.5-flash", extract="gemini-3.5-flash", max_tokens=2000),
-}
-
-PROVIDER = os.getenv("PMA_PROVIDER", "openrouter")
-_cfg = PROVIDERS[PROVIDER]
-client = OpenAI(base_url=_cfg["base_url"], api_key=os.environ[_cfg["key_env"]])
-GEN_MODEL = os.getenv("PMA_GEN_MODEL", _cfg["gen"])
-EXTRACT_MODEL = os.getenv("PMA_EXTRACT_MODEL", _cfg["extract"])
-GEN_MAX_TOKENS = _cfg["max_tokens"]
+from providers import (PROVIDER, client, GEN_MODEL, EXTRACT_MODEL,  # noqa: F401
+                       GEN_MAX_TOKENS)
 
 game2inst = {
     'Dictator': "You are paired with another player. Your role is to decide how to divide $100 and the other player simply receives your choice. How would you like to divide the money? Please give only one concrete choice and highlight the amount you give to the other player in [] (such as [$x]).",

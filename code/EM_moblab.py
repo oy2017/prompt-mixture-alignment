@@ -15,13 +15,8 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-# OpenRouter serves the paper's exact model snapshots via the OpenAI SDK.
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-)
-GEN_MODEL = "openai/gpt-4o-2024-05-13"
-EXTRACT_MODEL = "openai/gpt-4o-mini-2024-07-18"
+# Backbone selected by PMA_PROVIDER (default: the paper's GPT-4o snapshots).
+from providers import client, GEN_MODEL, EXTRACT_MODEL, GEN_MAX_TOKENS, PROVIDER
 
 df_joint = pd.read_csv('../data/joint.csv')
 
@@ -107,10 +102,17 @@ Using your crafted system prompt, a chatbot outputs mostly {sampled_behavior} in
 {output_format}
 '''
 
-def _api_call(model, messages, retries=5):
+# Writing a system prompt needs more room than answering a game, and a thinking
+# backbone spends part of any budget on hidden reasoning.
+CRAFT_MAX_TOKENS = max(GEN_MAX_TOKENS, 2000)
+
+
+def _api_call(model, messages, retries=5, max_tokens=None):
     for attempt in range(retries):
         try:
-            completion = client.chat.completions.create(model=model, messages=messages, n=1)
+            completion = client.chat.completions.create(
+                model=model, messages=messages, n=1,
+                max_tokens=max_tokens or GEN_MAX_TOKENS)
             if completion.choices[0].message.content:
                 return completion
         except Exception:
@@ -182,7 +184,7 @@ def craft_system_prompt(
     ]
 
     def craft():
-        completion = _api_call(GEN_MODEL, messages)
+        completion = _api_call(GEN_MODEL, messages, max_tokens=CRAFT_MAX_TOKENS)
 
         prompt = completion.choices[0].message.content
         choice = play(
