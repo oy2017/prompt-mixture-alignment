@@ -107,19 +107,7 @@ Using your crafted system prompt, a chatbot outputs mostly {sampled_behavior} in
 CRAFT_MAX_TOKENS = max(GEN_MAX_TOKENS, 2000)
 
 
-def _api_call(model, messages, retries=5, max_tokens=None):
-    for attempt in range(retries):
-        try:
-            completion = client.chat.completions.create(
-                model=model, messages=messages, n=1,
-                max_tokens=max_tokens or GEN_MAX_TOKENS)
-            if completion.choices[0].message.content:
-                return completion
-        except Exception:
-            if attempt == retries - 1:
-                raise
-        time.sleep(2 ** attempt)
-    return None
+from providers import api_call as _api_call
 
 
 def _play_one(game, system_prompt):

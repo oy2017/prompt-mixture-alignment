@@ -10,17 +10,13 @@ import ast
 import os
 
 
-client_0513 = AzureOpenAI(
-    azure_endpoint="https://<endpoint_0513>.openai.azure.com/",
-    api_key=os.getenv("AZURE_API_KEY_0513"),
-    api_version="2024-05-01-preview",
-)
+# Backbone selected by PMA_PROVIDER (default: the paper's GPT-4o snapshots).
+from concurrent.futures import ThreadPoolExecutor
 
-client_0718 = AzureOpenAI(
-    azure_endpoint="https://<endpoint_0718>.openai.azure.com/",
-    api_key=os.getenv("AZURE_API_KEY_0718"),
-    api_version="2024-05-01-preview",
-)
+from providers import (api_call as _api_call, GEN_MODEL, EXTRACT_MODEL,
+                       GEN_MAX_TOKENS, PROVIDER)
+
+CRAFT_MAX_TOKENS = max(GEN_MAX_TOKENS, 2000)
 
 df_joint = pd.read_csv('../data/joint.csv')
 
@@ -111,54 +107,48 @@ Using your crafted system prompt, a chatbot outputs mostly {sampled_behavior} in
 {output_format}
 '''
 
+def _play_one(game, system_prompt):
+    # OpenRouter and Gemini ignore n>1, so each sample is its own request.
+    completion = _api_call(GEN_MODEL, [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": game2inst[game]}
+    ])
+    response = completion.choices[0].message.content
+
+    for _ in range(5):
+        completion = _api_call(EXTRACT_MODEL, [
+            {"role": "system", "content": "You are a helpful assistant who helps extract the choice in a conversation. With a conversation between a user and a chatbot provided, please extract the chatbot's choice regarding the user's question. "},
+            {"role": "user", "content": game2inst[game]},
+            {"role": "assistant", "content": response},
+            {"role": "user", "content": "Please output one single integer number that stands for the choice without anything else:"}
+        ])
+        try:
+            choice = completion.choices[0].message.content
+            choice = ''.join(filter(str.isdigit, choice))
+            return int(choice), completion.to_dict()
+        except Exception:
+            pass
+    return None, None
+
+
 def play(
-        game, 
-        system_prompt="You are a helpful assistant.", 
+        game,
+        system_prompt="You are a helpful assistant.",
         n_choices=10
     ):
-    
-    completion = client_0513.chat.completions.create(
-        # model="gpt-4o-2024-08-06",
-        model='gpt-4o',
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": game2inst[game]}
-        ],
-        n=n_choices,
-    )
-
-    responses = [choice.message.content for choice in completion.choices]
     choices = []
     completions = []
-
-    for response in responses:
-        if response == None:
-            print(response)
-            continue
-        
-        
-        while True:
-            completion = client_0718.chat.completions.create(
-                model='gpt-4o-mini',
-                messages=[
-                    # {"role": "system", "content": system_prompt},
-                    {"role": "system", "content": "You are a helpful assistant who helps extract the choice in a conversation. With a conversation between a user and a chatbot provided, please extract the chatbot's choice regarding the user's question. "},
-                    {"role": "user", "content": game2inst[game]},
-                    {"role": "assistant", "content": response},
-                    {"role": "user", "content": "Please output one single integer number that stands for the choice without anything else:"}
-                ],
-            )
-            try:
-                choice = completion.choices[0].message.content
-                choice = ''.join(filter(str.isdigit, choice))
-                choice = int(choice)
-                choices.append(choice)
-                completions.append(completion.to_dict())
-
-                break
-            except:
-                pass
-
+    for _ in range(3):  # retry batches until n_choices collected
+        missing = n_choices - len(choices)
+        if missing <= 0:
+            break
+        with ThreadPoolExecutor(min(missing, 10)) as ex:
+            futs = [ex.submit(_play_one, game, system_prompt) for _ in range(missing)]
+            for f in futs:
+                c, comp = f.result()
+                if c is not None:
+                    choices.append(c)
+                    completions.append(comp)
     return choices, completions
 
 
@@ -179,22 +169,18 @@ def craft_system_prompt(
     ]
 
     def craft():
-        
-        prompt = None
-        while prompt == None:
-            completion = client_0513.chat.completions.create(
-                model="gpt-4o",
-                messages=messages,
-                n=1,
-            )
-
-            prompt = completion.choices[0].message.content
+        completion = _api_call(GEN_MODEL, messages, max_tokens=CRAFT_MAX_TOKENS)
+        prompt = completion.choices[0].message.content
 
         choice = play(
-            game, 
-            system_prompt=prompt, 
+            game,
+            system_prompt=prompt,
             n_choices=n_sample_per_learner
         )[0]
+
+        if len(choice) == 0:
+            last_modes.append(None)
+            return
 
         last_mode = statistics.mode(choice)
         last_modes.append(last_mode)
@@ -415,18 +401,20 @@ def gb_run(
         result_df.to_csv(game_name+"/"+str(n_test)+'_result.csv')
 
 def main(args):
-    print(f"This is the experiments for {args.game}.") 
-    for i in range(5): 
-        print("---------Run: "+str(i+1)+" Begin---------")  
+    print(f"This is the experiments for {args.game}.")
+    for i in range(args.runs):
+        print("---------Run: "+str(i+1)+" Begin---------")
         folder_path = str(args.game)+"/"+str(i+1)+"_result"
-        os.makedirs(folder_path, exist_ok=True) 
-        gb_run(args.game, i+1)
-        print("---------Run: "+str(i+1)+" End---------")  
+        os.makedirs(folder_path, exist_ok=True)
+        gb_run(args.game, i+1, max_iter=args.maxIter)
+        print("---------Run: "+str(i+1)+" End---------")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is for GB formalization Experiments")
     parser.add_argument("--game", type=str)
-    
+    parser.add_argument("--runs", type=int, default=5)
+    parser.add_argument("--maxIter", type=int, default=200)
+
     args = parser.parse_args()
     main(args)
     
