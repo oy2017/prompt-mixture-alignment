@@ -141,6 +141,94 @@ all 1,000 samples with the mixture component that produced each, metrics) and
 `intermediate_results/ Cross_model_backbone_sensitivity/` files — enough to recompute
 these metrics offline or re-replay the mixture on another backbone.
 
+### Gemini study: refits, full-matrix sweep, and the quantization mechanism
+
+Extending the backbone work above (dates: 2026-08-29/30; `gemini-3.5-flash` and
+`gemini-pro-latest` via Google's OpenAI-compatible endpoint, selected with
+`PMA_PROVIDER`; flash extraction model throughout).
+
+**From-scratch refits fully recover — and beat — the fitted-backbone results.**
+Public Goods, all three backbones, EM K=10:
+
+| Backbone | fitted W-dist | mean/std (human 9.63/6.44) | Wilcoxon |
+|---|---|---|---|
+| GPT-4o | 0.43 | 9.56/6.25 | pass |
+| gemini-3.5-flash | **0.31** | 9.64/6.43 | pass (p=0.94) |
+| gemini-pro-latest | 0.44 | 9.32/6.45 | pass (p=0.15) |
+
+So the transfer failures (2.04–2.17 flash / 1.81 pro) were purely
+calibration-transfer artifacts; the EM loop self-corrects on any backbone
+tested. Pro's transfer failure is near-identical to flash's (34.1% vs 34.0% of
+samples at $20; same components saturate), so persona→behavior calibration is a
+**model-family trait, not a capability effect**.
+
+**Full flash matrix — EM and GB, all 7 MobLab games (W-dist, 1,000 fresh
+samples vs full human data):**
+
+| Game | flash EM | paper EM | flash GB | paper GB |
+|---|---|---|---|---|
+| Dictator | **0.68** | 1.69 | 2.63 | **1.17** |
+| Proposer | **1.05** | 1.39 | **1.80** | 1.88 |
+| Responder | **1.65** | 3.05 | **1.82** | 2.51 |
+| Investor | **1.56** | 1.75 | 2.77 | **1.84** |
+| Banker | **3.34** | 9.36 | **3.36** | 4.24 |
+| Public Goods | **0.31** | 0.47 | **0.85** | 0.88 |
+| Bomb | **1.48** | 6.32 | **1.89** | 4.59 |
+
+Flash EM beats the paper's GPT-4o EM on **7/7 games** (Dictator even lands
+below that run's 1,000-human-sample floor of 1.04). Flash GB wins 5/7. And
+within flash, EM ≤ GB on all seven games — reversing the paper, where GB often
+won. (Flash GB ran at maxIter=60 rather than the paper's 200; the paper's own
+convergence analysis shows GB stabilizes by ~30 prompts.)
+
+**The mechanism finding: Gemini mixtures are deterministic quantizations, not
+persona populations.** Per-component attribution over the evaluation samples:
+
+- Flash EM Public Goods: **10/10 components zero-variance** — each persona
+  always answers one exact number. Support = exactly K values; entropy 3.19
+  bits vs human 3.96. GPT-4o's mixture: 18 distinct values from K=10, with
+  real within-component spread.
+- Pro EM Public Goods: 10/10 zero-variance (fit-time and eval).
+- Pro EM Dictator (K=50, 101-value action space): **48/49 zero-variance** at
+  fit time — the mechanism scales.
+- Flash GB Dictator/Banker/Bomb: 17/18, 22/22, 22/26 zero-variance.
+
+All the diversity in a Gemini mixture comes from the weights: the EM loop
+learns a K-atom quantization of the human histogram. Wasserstein distance,
+mean, std, and the Wilcoxon test are all blind to the difference — the
+quantization *outscores* the persona population on every one of them. Only
+support size / entropy (or, weakly, KS) expose it. Two corollaries:
+
+1. For social simulation — sampling a persona and interacting with it — the
+   two mixtures are different objects: noisy person-like agents vs a lookup
+   table in persona costume. Population-level alignment metrics cannot tell
+   them apart, a measurement gap in the paper's evaluation framework.
+2. The EM-over-GB reversal on flash follows from the mechanism: EM's global
+   reassignment can relocate atoms every iteration, while GB's greedy additive
+   scheme cannot move an atom once placed, only down-weight it.
+
+**Persona conditioning removes response variance on Gemini.** The fixed-prompt
+baseline ("You are a helpful assistant.", 1,000 samples): flash W-dist 4.02
+(mean 12.0, std 2.56 — 4 distinct values, 59.6% at $10); pro 3.49 (std 4.05 —
+3 distinct values, 80% at $10); paper's GPT-4o value 5.04. The *default*
+prompt has more within-prompt variance than any crafted persona (std 0.00) —
+on Gemini, personas are precision instruments, not diversity generators, and
+the smarter tier collapses harder by default.
+
+**Pro focused runs (insight subset per scope decision):** EM Dictator
+(archived; eval pending quota), EM Banker and GB Dictator in the overnight
+queue. The pro model carries a hard daily quota on this key; the harness
+sleeps through exhaustion (`providers.api_call`) and resumes at the
+midnight-PT reset. Results will be appended when they land.
+
+**Artifacts.** Every fit: full EM/GB trajectory (initialization prompts,
+per-iteration allocations/updates, weight history) under
+`level3_<provider>_<alg>_<game>/`. Every eval: prompts, weights, all 1,000
+samples with per-component attribution (`eval_prompt_idx`), provider/model
+IDs, and metrics in `replay_results/*.json` + flat `*_samples.csv`. Baselines
+under `baseline/`. GB evals consume `prompts_for_eval.csv` /
+`weights_for_eval.pkl` produced by `code/prepare_gb_eval.py`.
+
 ## Verdict
 
 The paper's central claim — that a learned mixture of system prompts reproduces
@@ -151,10 +239,18 @@ not KS). Scope: levels 2–3 cover one game (Public Goods, EM); level 1 covers a
 MobLab games under both algorithms.
 
 The one negative result is cross-backbone transfer: prompts fitted on GPT-4o do not
-carry to Gemini without refitting (W-dist 0.43 → 2.17). The paper reports transfer as
-a strength based on WVS and partial MobLab results; on this game it does not hold,
-which suggests the mixture weights are backbone-specific even when the learned
-personas are not.
+carry to Gemini without refitting (W-dist 0.43 → 1.81–2.17 across both Gemini
+tiers). The paper reports transfer as a strength based on WVS and partial MobLab
+results; on this game it does not hold. Refitting fully recovers — flash EM beats
+the paper's GPT-4o numbers on all 7 MobLab games — so the method is
+backbone-agnostic even though its fitted artifacts are not.
+
+The deeper qualification is the mechanism finding above: on the Gemini family the
+method's excellent aggregate alignment is achieved by a deterministic K-atom
+quantization rather than a population of behaviorally noisy personas, and none of
+the paper's evaluation metrics can distinguish the two. Distributional alignment
+(population level) and simulation fidelity (individual level) come apart, and the
+evaluation framework only measures the former.
 
 ## Deviations from the original setup
 
