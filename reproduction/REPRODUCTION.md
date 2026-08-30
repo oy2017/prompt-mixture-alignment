@@ -72,6 +72,35 @@ All fitting artifacts are in `level3_EM_Public_Goods/` (initialization prompts,
 per-iteration cluster allocations and prompt updates, weight trajectory) and the
 evaluation samples/metrics in `replay_results/level3_EM_Public_Goods_run1.json`.
 
+### Cross-backbone transfer — Gemini (free tier)
+
+Analogue of the paper's backbone-sensitivity study: the level-3 mixture (prompts and
+weights fitted with GPT-4o) replayed unchanged on `gemini-3.5-flash` via Google's
+OpenAI-compatible endpoint, 1,000 fresh samples.
+
+| Backbone | W-dist | mean / std | Wilcoxon |
+|---|---|---|---|
+| gpt-4o-2024-05-13 (fitted) | **0.43** | 9.56 / 6.25 | pass (p = 0.918) |
+| gemini-3.5-flash (transferred) | **2.17** | 11.56 / 7.33 | fail (p < 0.001) |
+| human | — | 9.63 / 6.44 | — |
+
+Transfer degrades ~5x. The direction of steering survives — Gemini's $0 (free-rider)
+share is 13% vs. humans' 12% — but the generous components overshoot: Gemini answers
+$20 in 34% of samples vs. 16% of humans and 13% of GPT-4o, pulling the mean up ~2
+points. The mixture weights were fitted to GPT-4o's response magnitudes, so a persona
+that moves GPT-4o to $15 moves Gemini to $20 at the same weight. This bounds
+*prompt transfer*, not the method: a from-scratch refit on Gemini measures that
+model's own responses inside the EM loop and should recalibrate (untested here).
+Consistent with the paper's own MobLab transfer results (Llama backbones beat
+baselines in only 4 of 7 games).
+
+Gemini practicalities: `gemini-3.5-flash` reasons at length before answering, so the
+350-token generation cap used for GPT-4o truncates responses *before* the bracketed
+choice; 2,000 tokens is required. Select the backbone with `PMA_PROVIDER=gemini`
+(see `PROVIDERS` in `code/replay_eval.py`).
+
+Raw output: `replay_results/crossbackbone_gemini_Public_Goods.json`.
+
 ## Verdict
 
 The paper's central claim — that a learned mixture of system prompts reproduces
@@ -80,6 +109,12 @@ level tested, including a full from-scratch refit on an independent account. The
 test failure matches the paper's own reporting (MobLab simulations pass Wilcoxon but
 not KS). Scope: levels 2–3 cover one game (Public Goods, EM); level 1 covers all 7
 MobLab games under both algorithms.
+
+The one negative result is cross-backbone transfer: prompts fitted on GPT-4o do not
+carry to Gemini without refitting (W-dist 0.43 → 2.17). The paper reports transfer as
+a strength based on WVS and partial MobLab results; on this game it does not hold,
+which suggests the mixture weights are backbone-specific even when the learned
+personas are not.
 
 ## Deviations from the original setup
 

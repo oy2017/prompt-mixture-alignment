@@ -24,13 +24,26 @@ from openai import OpenAI
 from scipy.optimize import Bounds, LinearConstraint, minimize
 from scipy.stats import kstest, ranksums, wasserstein_distance
 
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.environ["OPENROUTER_API_KEY"],
-)
+PROVIDERS = {
+    # backbone used by the paper
+    "openrouter": dict(
+        base_url="https://openrouter.ai/api/v1", key_env="OPENROUTER_API_KEY",
+        gen="openai/gpt-4o-2024-05-13", extract="openai/gpt-4o-mini-2024-07-18",
+        max_tokens=350),
+    # cross-backbone study: Gemini reasons at length before answering, so it
+    # needs a much larger completion budget to reach its bracketed choice.
+    "gemini": dict(
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        key_env="GEMINI_API_KEY",
+        gen="gemini-3.5-flash", extract="gemini-3.5-flash", max_tokens=2000),
+}
 
-GEN_MODEL = "openai/gpt-4o-2024-05-13"
-EXTRACT_MODEL = "openai/gpt-4o-mini-2024-07-18"
+PROVIDER = os.getenv("PMA_PROVIDER", "openrouter")
+_cfg = PROVIDERS[PROVIDER]
+client = OpenAI(base_url=_cfg["base_url"], api_key=os.environ[_cfg["key_env"]])
+GEN_MODEL = os.getenv("PMA_GEN_MODEL", _cfg["gen"])
+EXTRACT_MODEL = os.getenv("PMA_EXTRACT_MODEL", _cfg["extract"])
+GEN_MAX_TOKENS = _cfg["max_tokens"]
 
 game2inst = {
     'Dictator': "You are paired with another player. Your role is to decide how to divide $100 and the other player simply receives your choice. How would you like to divide the money? Please give only one concrete choice and highlight the amount you give to the other player in [] (such as [$x]).",
@@ -75,7 +88,7 @@ def generate_one(game, system_prompt):
         decision = _chat(GEN_MODEL, [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": game2inst[game]},
-        ], max_tokens=350)
+        ], max_tokens=GEN_MAX_TOKENS)
         if decision is None:
             continue
         m = re.findall(r"\[\$?\s*(\d+(?:\.\d+)?)\s*\]", decision)
@@ -87,7 +100,7 @@ def generate_one(game, system_prompt):
                 {"role": "user", "content": game2inst[game]},
                 {"role": "assistant", "content": decision},
                 {"role": "user", "content": "Please output one single integer number that stands for the choice without anything else:"},
-            ], max_tokens=10)
+            ], max_tokens=200)
             digits = ''.join(filter(str.isdigit, extracted or ''))
             if not digits:
                 continue
