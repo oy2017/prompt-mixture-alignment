@@ -32,6 +32,9 @@ PROVIDERS = {
         max_tokens=350),
     # cross-backbone study: Gemini reasons at length before answering, so it
     # needs a much larger completion budget to reach its bracketed choice.
+    # gemini-3.5-flash is a thinking model: hidden reasoning tokens are charged
+    # against max_tokens while usage.completion_tokens reports only visible
+    # output. Measured truncation rate: 100% at 350, 96% at 500, 0/240 at 2000.
     "gemini": dict(
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
         key_env="GEMINI_API_KEY",
@@ -100,7 +103,7 @@ def generate_one(game, system_prompt):
                 {"role": "user", "content": game2inst[game]},
                 {"role": "assistant", "content": decision},
                 {"role": "user", "content": "Please output one single integer number that stands for the choice without anything else:"},
-            ], max_tokens=200)
+            ], max_tokens=GEN_MAX_TOKENS)
             digits = ''.join(filter(str.isdigit, extracted or ''))
             if not digits:
                 continue
@@ -142,6 +145,7 @@ def main():
     ap.add_argument("--prompts-csv", help="evaluate a local fit-from-scratch run: CSV with a 'prompt' column")
     ap.add_argument("--weights-pkl", help="with --prompts-csv: pickle of the run's weights_lst (last entry used)")
     ap.add_argument("--tag", default=None, help="label used in the output filename")
+    ap.add_argument("--outdir", default="../reproduction/replay_results")
     args = ap.parse_args()
 
     human = pd.read_csv("../data/joint.csv")[human_col[args.game]].dropna().values
@@ -189,8 +193,9 @@ def main():
         # Stage 2: 1,000 fresh samples from the weighted mixture
         picks = random.choices(range(len(prompts)), weights=weights, k=args.n_eval)
         futs = [ex.submit(generate_one, args.game, prompts[i]) for i in picks]
-        sim = [f.result() for f in futs]
-        sim = np.array([v for v in sim if v is not None])
+        pairs = [(i, f.result()) for i, f in zip(picks, futs)]
+    attributed = [(i, v) for i, v in pairs if v is not None]
+    sim = np.array([v for _, v in attributed])
     print(f"generated {len(sim)}/{args.n_eval} eval samples")
 
     # Stage 3: compare against the full human distribution
@@ -206,15 +211,28 @@ def main():
           f"human mean/std = {human.mean():.2f}/{human.std():.2f}")
 
     ex.shutdown(wait=False)
-    os.makedirs("../replay_results", exist_ok=True)
+    outdir = args.outdir
+    os.makedirs(outdir, exist_ok=True)
     tag = args.tag or f"{args.alg}_{args.game}_run{args.run}"
-    out = f"../replay_results/{tag}.json"
+    out = f"{outdir}/{tag}.json"
     with open(out, "w") as f:
         json.dump({"alg": args.alg, "game": args.game, "run": args.run,
+                   "provider": PROVIDER, "gen_model": GEN_MODEL,
+                   "extract_model": EXTRACT_MODEL,
                    "prompts": prompts, "weights": weights.tolist(),
-                   "per_prompt_samples": per_prompt, "eval_samples": sim.tolist(),
+                   "per_prompt_samples": per_prompt,
+                   "eval_samples": sim.tolist(),
+                   # sample -> index of the mixture component that produced it,
+                   # so per-component behaviour stays auditable after the fact
+                   "eval_prompt_idx": [int(i) for i, _ in attributed],
                    "wasserstein": w, "wilcoxon_p": wil, "ks_p": ks}, f, indent=1)
-    print("saved:", out)
+
+    # Also emit the flat one-column-per-game CSV the repo uses for its own
+    # cross-backbone artifacts (intermediate_results/*Cross_model_*).
+    csv_out = f"{outdir}/{tag}_samples.csv"
+    pd.DataFrame({args.game: sim,
+                  "prompt_idx": [i for i, _ in attributed]}).to_csv(csv_out, index=False)
+    print("saved:", out, "and", csv_out)
 
 
 if __name__ == "__main__":

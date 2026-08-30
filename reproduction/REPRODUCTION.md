@@ -81,25 +81,65 @@ OpenAI-compatible endpoint, 1,000 fresh samples.
 | Backbone | W-dist | mean / std | Wilcoxon |
 |---|---|---|---|
 | gpt-4o-2024-05-13 (fitted) | **0.43** | 9.56 / 6.25 | pass (p = 0.918) |
-| gemini-3.5-flash (transferred) | **2.17** | 11.56 / 7.33 | fail (p < 0.001) |
+| gemini-3.5-flash (transferred) | **2.17** / **2.04** | 11.56 / 7.33, 11.30 / 7.41 | fail (p < 0.001) |
 | human | — | 9.63 / 6.44 | — |
 
-Transfer degrades ~5x. The direction of steering survives — Gemini's $0 (free-rider)
-share is 13% vs. humans' 12% — but the generous components overshoot: Gemini answers
-$20 in 34% of samples vs. 16% of humans and 13% of GPT-4o, pulling the mean up ~2
-points. The mixture weights were fitted to GPT-4o's response magnitudes, so a persona
-that moves GPT-4o to $15 moves Gemini to $20 at the same weight. This bounds
-*prompt transfer*, not the method: a from-scratch refit on Gemini measures that
-model's own responses inside the EM loop and should recalibrate (untested here).
-Consistent with the paper's own MobLab transfer results (Llama backbones beat
-baselines in only 4 of 7 games).
+Two independent Gemini runs (2.17 and 2.04) — the degradation is stable, ~5x worse
+than the fitted backbone, failing both tests.
 
-Gemini practicalities: `gemini-3.5-flash` reasons at length before answering, so the
-350-token generation cap used for GPT-4o truncates responses *before* the bracketed
-choice; 2,000 tokens is required. Select the backbone with `PMA_PROVIDER=gemini`
-(see `PROVIDERS` in `code/replay_eval.py`).
+Per-component attribution (`eval_prompt_idx` in the saved JSON) localizes the failure
+exactly. Each component was crafted to hit a target contribution; comparing that
+target to what Gemini actually does:
 
-Raw output: `replay_results/crossbackbone_gemini_Public_Goods.json`.
+| component | weight | target | Gemini mean | persona |
+|---|---|---|---|---|
+| 0 | 0.138 | 0 | 0.00 | highly cautious, minimizes contributions |
+| 7 | 0.083 | 1 | 1.11 | conserves resources |
+| 9 | 0.158 | 8 | 7.69 | conservative yet cooperative |
+| 8 | 0.099 | 9 | 10.67 | rational maximizer |
+| 5 | 0.079 | 8 | 10.03 | calculated, resource-conscious |
+| 1 | 0.092 | 13 | 14.24 | strategic optimizer |
+| 4 | 0.090 | 12 | 18.96 | strategic and thoughtful cooperator |
+| **2** | **0.235** | **14** | **20.00** | highly collaborative altruist |
+| 3 | 0.014 | 15 | 20.00 | cooperative optimist |
+| 6 | 0.011 | 14 | 20.00 | insightful and generous |
+
+Low- and mid-target components transfer almost perfectly (targets 0, 1, 8, 9, 13 land
+within ~1 of target). Every component targeting >= 12 saturates at exactly $20 —
+including component 2, which alone carries 23.5% of the mixture weight. Gemini treats
+"be generous" as maximal contribution where GPT-4o produces graded intermediate
+values, so the upper half of the distribution collapses onto its boundary and the
+mean rises ~1.7 points.
+
+This bounds *prompt transfer*, not the method: the weights and the crafting loop were
+calibrated against GPT-4o's response magnitudes, and a from-scratch refit puts
+Gemini's own responses inside the EM feedback loop (untested here, ~$5). Consistent
+with the paper's own MobLab transfer results (Llama backbones beat baselines in only
+4 of 7 games).
+
+**Token-budget trap.** `gemini-3.5-flash` is a thinking model: hidden reasoning
+tokens are charged against `max_tokens`, while `usage.completion_tokens` reports only
+the visible output (median 91, max 212 tokens here). Sizing the cap from that
+reported number silently truncates almost every response *before* it reaches the
+bracketed answer. Measured over 50 probes per cap (240 at 2,000):
+
+| generation cap | truncated | usable answer |
+|---|---|---|
+| 250 | 98% | 0% |
+| 350 | 100% | 0% |
+| 500 | 96% | 4% |
+| **2,000** | **0/240** | **100%** |
+| 8,000 | 0/40 | 100% |
+
+2,000 is sufficient and 8,000 adds nothing. The extraction fallback shares the same
+budget for the same reason. Select the backbone with `PMA_PROVIDER=gemini` (see
+`PROVIDERS` in `code/replay_eval.py`).
+
+Artifacts: `replay_results/crossbackbone_gemini_Public_Goods.json` (prompts, weights,
+all 1,000 samples with the mixture component that produced each, metrics) and
+`..._samples.csv` in the same flat format as the repo's own
+`intermediate_results/ Cross_model_backbone_sensitivity/` files — enough to recompute
+these metrics offline or re-replay the mixture on another backbone.
 
 ## Verdict
 
