@@ -254,12 +254,19 @@ def initialization(
                     replace=False
                 ).tolist()
 
-    for disired_behavior in tqdm(sampled_desired_behavior):
-        prompts, choices, desired = craft_system_prompt(
-            game_name,
-            disired_behavior,
-        )
+    # Each target's craft loop is independent; PMA_INIT_WORKERS parallelizes
+    # across targets (each already parallelizes its own 10 test samples).
+    init_workers = int(os.getenv("PMA_INIT_WORKERS", "1"))
+    if init_workers > 1:
+        with ThreadPoolExecutor(init_workers) as ex:
+            results = list(ex.map(
+                lambda b: craft_system_prompt(game_name, b),
+                sampled_desired_behavior))
+    else:
+        results = [craft_system_prompt(game_name, b)
+                   for b in tqdm(sampled_desired_behavior)]
 
+    for prompts, choices, desired in results:
         if len(choices) == 0:
             continue
 

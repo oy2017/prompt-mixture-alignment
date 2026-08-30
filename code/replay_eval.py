@@ -49,18 +49,11 @@ human_col = {
 
 
 def _chat(model, messages, max_tokens, retries=5):
-    for attempt in range(retries):
-        try:
-            c = client.chat.completions.create(
-                model=model, messages=messages, max_tokens=max_tokens)
-            content = c.choices[0].message.content
-            if content:
-                return content
-        except Exception as e:
-            if attempt == retries - 1:
-                raise
-            time.sleep(2 ** attempt)
-    return None
+    # providers.api_call sleeps through daily-quota exhaustion instead of
+    # crashing, so a 1000-sample eval survives a mid-run RESOURCE_EXHAUSTED.
+    from providers import api_call
+    c = api_call(model, messages, max_tokens=max_tokens, retries=retries)
+    return c.choices[0].message.content
 
 
 def generate_one(game, system_prompt):
