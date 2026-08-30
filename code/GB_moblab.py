@@ -22,7 +22,7 @@ client_0718 = AzureOpenAI(
     api_version="2024-05-01-preview",
 )
 
-df_joint = pd.read_csv('../joint.csv')
+df_joint = pd.read_csv('../data/joint.csv')
 
 df_joint.rename(columns={
     'dictator': 'Dictator',
@@ -418,7 +418,7 @@ def main(args):
     print(f"This is the experiments for {args.game}.") 
     for i in range(5): 
         print("---------Run: "+str(i+1)+" Begin---------")  
-        folder_path = str(args.dimension)+"/"+str(i+1)+"_result" 
+        folder_path = str(args.game)+"/"+str(i+1)+"_result"
         os.makedirs(folder_path, exist_ok=True) 
         gb_run(args.game, i+1)
         print("---------Run: "+str(i+1)+" End---------")  

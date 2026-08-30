@@ -500,17 +500,13 @@ def gb_run(
         result_df.to_csv(dimension+"/"+str(n_test)+'_result.csv')
 
 def main(args):
-    print(f"This is the experiments for {args.game}.") 
-    for i in range(5): 
-        print("---------Run: "+str(i+1)+" Begin---------")  
+    print(f"This is the experiments for {args.dimension}.")
+    for i in range(5):
+        print("---------Run: "+str(i+1)+" Begin---------")
         folder_path = str(args.dimension)
-        os.makedirs(folder_path, exist_ok=True) 
+        os.makedirs(folder_path, exist_ok=True)
         gb_run(args.dimension, i+1)
-
-        folder_path = str("O")
-        os.makedirs(folder_path, exist_ok=True) 
-        gb_run("O", 1)
-        print("---------Run: "+str(i+1)+" End---------")  
+        print("---------Run: "+str(i+1)+" End---------")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is for GB formalization Experiments")

@@ -987,7 +987,8 @@ def em_play(
 
 def main(args):
     for i in range(5): 
-        print("---------Run: "+str(i+1)+" Begin---------")  
+        print("---------Run: "+str(i+1)+" Begin---------")
+        os.makedirs(str(i+1)+"_result", exist_ok=True)
         em_play(i+1, numIter=args.numIter, K=args.K, binsize=args.binsize)
         print("---------Run: "+str(i+1)+" End---------")  
 

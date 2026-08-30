@@ -758,7 +758,7 @@ def gb_run(
 def main(args):
     for i in range(5): 
         print("---------Run: "+str(i+1)+" Begin---------")  
-        gb_run(i+1, numIter=args.numIter)
+        gb_run(i+1, max_iter=args.numIter)
         print("---------Run: "+str(i+1)+" End---------")  
 
 if __name__ == "__main__":

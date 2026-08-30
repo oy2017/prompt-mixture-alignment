@@ -16,7 +16,7 @@ client = OpenAI(
     api_key ="OPENAI_API_KEY",
 )
 
-df_joint = pd.read_csv('../joint.csv')
+df_joint = pd.read_csv('../data/joint.csv')
 
 df_joint.rename(columns={
     'dictator': 'Dictator',
