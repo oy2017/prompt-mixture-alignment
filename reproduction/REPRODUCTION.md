@@ -229,6 +229,70 @@ IDs, and metrics in `replay_results/*.json` + flat `*_samples.csv`. Baselines
 under `baseline/`. GB evals consume `prompts_for_eval.csv` /
 `weights_for_eval.pkl` produced by `code/prepare_gb_eval.py`.
 
+### 2D joint-distribution experiment (stages A/B/C)
+
+The method fits each attribute's marginal independently; populations are
+joint distributions. `data/joint.csv` provides ground truth (same participant
+across games). Human cross-game consistency is context-dependent: Spearman
++0.291 across the two ultimatum roles (Proposer x Responder, n=5,291) but only
++0.057 across different games (Public Goods x Dictator, n=2,520).
+
+**Stage A — do 1D-fitted personas carry joint structure?** Sample personas
+from a fitted mixture; each plays both games (independent calls); compare the
+induced joint to the human joint (2D EMD via POT, normalized coordinates;
+shuffle baseline destroys within-persona coupling while preserving marginals).
+
+| Arm (mixture used) | human rho | sim rho | EMD sim | EMD shuffle | EMD stage-B | floor |
+|---|---|---|---|---|---|---|
+| flash PG-mixture, PG x Dictator | +0.057 | **+1.000** | 0.319 | 0.241 | 0.264 | 0.030 |
+| gpt-4o PG-mixture, PG x Dictator | +0.057 | +0.786 | 0.186 | 0.155 | 0.177 | 0.032 |
+| flash Proposer-mixture, Prop x Resp | +0.291 | **+0.295** | 0.075 | 0.078 | 0.069 | 0.027 |
+
+Findings: (1) deterministic atoms produce *perfect* rank correlation — each
+persona is one 2D point and trait-ordering makes them co-monotone; GPT-4o's
+within-persona noise only softens this to +0.79. (2) On the near-independent
+pair, persona coupling is *worse than assuming independence* (shuffle beats
+sim for both backbones). (3) Persona trait-consistency is roughly constant
+across contexts while humans' is context-dependent — so the same mechanism
+that ruins PG x Dictator almost exactly reproduces Proposer x Responder.
+
+**Stage B — retrain weights on the joint (no new crafting).** With components
+fixed, optimal weights reduce to Voronoi assignment of human mass to nearest
+persona atom. It barely helps (0.319 -> 0.264 on flash; correlation stays at
++1.0): all atoms lie on the "consistent character" diagonal, and no
+reweighting can create the off-diagonal humans (generous in one context,
+selfish in the other) who dominate the near-independent joint. This is a
+support-coverage failure, not a calibration failure.
+
+**Stage C — joint-aware crafting closes the gap.** 25 rounds of kmeans++-style
+residual targeting on the human joint, with a meta-prompt that explicitly
+legitimizes context-decoupled dispositions ("real people often behave
+differently in group versus one-on-one settings"); Voronoi weights; ~1,500
+flash calls (`code/craft2d.py`).
+
+| PG x Dictator | 1D mixture | stage C | human |
+|---|---|---|---|
+| Spearman | +1.000 | **+0.042** | +0.057 |
+| 2D EMD | 0.319 | **0.055** | floor 0.032 |
+
+The crafted personas hit off-diagonal targets exactly (e.g. contribute 10/20
+in Public Goods, give $0/100 in Dictator), correlation becomes statistically
+indistinguishable from human, and the joint EMD improves 6x to within ~1.7x
+of the sampling floor. Notably 13/23 stage-C personas exhibit nonzero 2D
+variance — prompting for context-dependence partially restores behavioral
+noise as well.
+
+**Implication for the method.** 1D prompt-mixture fitting produces marginals
+that are excellent and joints that are structurally wrong in a way weights
+cannot repair; a modest extension (joint residual targeting + decoupled-trait
+crafting) fixes it. Higher-dimensional joints will face the same
+coverage-vs-K economics.
+
+Artifacts: `joint_results/*.json` (paired samples with persona attribution,
+stage-B analysis embedded), `stageC_flash_PG_Dictator/` (crafted personas,
+weights, fit trace with per-round targets and achieved atoms), scripts
+`code/joint_eval.py`, `code/joint_analyze.py`, `code/craft2d.py`.
+
 ## Verdict
 
 The paper's central claim — that a learned mixture of system prompts reproduces
