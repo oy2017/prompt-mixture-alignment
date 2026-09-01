@@ -365,6 +365,14 @@ behave differently* in group vs one-on-one settings (`code/craft2d.py`):
 | Cross-game correlation (Spearman: +1 = one answer perfectly predicts the other; 0 = unrelated) | +1.000 | +0.042 | +0.055 (reweighted) | +0.057 |
 | Overall 2D mismatch (earth-mover distance with both game ranges rescaled to 0–1; lower = generated pairs closer to real pairs) | 0.319 | 0.055 | **0.040** | floor 0.032 |
 
+Reading the table: the column names say which data *fitted* each mixture;
+both rows *measure* two-game behavior — every system prompt was asked both
+questions, and the generated answer-pairs are compared against the real
+participants' pairs. (Avoid one coincidence: the first column's mixture also
+has an ordinary single-game Public Goods score of W-dist 0.31 — dollars,
+different metric. Its 0.319 here is the unrelated 2D mismatch on the 0–1
+scale; the near-identical digits are chance.)
+
 The crafted system prompts hit off-diagonal targets exactly (e.g. contribute
 $10/20 in Public Goods, give $0/100 in Dictator); correlation becomes
 statistically indistinguishable from human; the K=100 fit presses against the
