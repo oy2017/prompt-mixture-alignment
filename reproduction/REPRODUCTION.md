@@ -332,13 +332,16 @@ coupling while preserving both histograms):
 | Arm (mixture used) | human rho | sim rho | EMD sim | EMD shuffle | EMD reweighted | floor |
 |---|---|---|---|---|---|---|
 | flash PG-mixture, PG x Dictator | +0.057 | **+1.000** | 0.319 | 0.241 | 0.264 | 0.030 |
+| flash Dictator-mixture, PG x Dictator | +0.057 | **+0.957** | 0.259 | 0.186 | 0.129 | 0.034 |
 | gpt-4o PG-mixture, PG x Dictator | +0.057 | +0.786 | 0.186 | 0.155 | 0.177 | 0.032 |
 | flash Proposer-mixture, Prop x Resp | +0.291 | **+0.295** | 0.075 | 0.078 | 0.069 | 0.027 |
 
 Deterministic system prompts produce *perfect* rank correlation — each is one 2D
 dot, and trait-ordering lines the dots up; GPT-4o's within-prompt noise only
-softens this to +0.79. On the near-independent pair the system prompt coupling is
-*worse than assuming independence* (shuffle beats sim for both backbones).
+softens this to +0.79. The failure is symmetric: fitting on Dictator instead
+of Public Goods gives the same diagonal (+0.96). On the near-independent pair
+the system prompt coupling is *worse than assuming independence* (shuffle
+beats sim in every PG x Dictator arm).
 System prompt trait-consistency is roughly constant across contexts while humans'
 is context-dependent — the same mechanism that ruins PG x Dictator almost
 exactly reproduces Proposer x Responder.
@@ -348,10 +351,12 @@ exactly reproduces Proposer x Responder.
 ### Stage B — reweighting cannot fix it
 
 With components fixed, optimal weights reduce to assigning each human pair to
-its nearest system prompt dot. It barely helps (0.319 → 0.264 on flash;
-correlation stays +1.0): all dots lie on the "consistent character" diagonal,
-and no reweighting can create the off-diagonal people (generous in one
-context, selfish in the other) who dominate the real joint. A coverage
+its nearest system prompt dot. It barely helps (0.319 → 0.264 on the
+PG-fitted flash mixture, correlation stays +1.0; 0.259 → 0.129 on the
+Dictator-fitted one, correlation still +0.44 vs the human +0.057 — better,
+but still 4x the floor): all dots lie on the "consistent character"
+diagonal, and no reweighting can create the off-diagonal people (generous in
+one context, selfish in the other) who dominate the real joint. A coverage
 failure, not a calibration failure.
 
 ### Stage C — fitting both games together fixes it
