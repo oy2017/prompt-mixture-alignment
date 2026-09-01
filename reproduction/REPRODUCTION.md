@@ -19,6 +19,16 @@ Terminology, used consistently below: a fitted **mixture** is K crafted
 **system prompts** (each a character description: "You are a cautious...")
 plus their sampling **weights**.
 
+Metrics: **W-dist** (Wasserstein distance) measures how far the generated
+distribution is from the human one, in the game's own dollars — lower is
+better, and the "human floor" is the W-dist a random sample of 1,000 real
+humans gets against the full data (sampling noise; nothing can reliably beat
+it). **Wilcoxon pass** means a standard statistical test (rank-sum, p > 0.05)
+cannot tell the generated samples apart from human samples; *fail* means it
+can. Wilcoxon is mostly sensitive to the middle of the distribution, not its
+shape — the stricter KS test compares full shapes, which is why it fails
+almost everywhere for every method, including the paper's.
+
 **[1. The paper checks out.](#finding-1--the-paper-checks-out)** Verified at
 three levels of decreasing trust. The method has a training/inference split:
 *training* = the fitting loop that produces a "checkpoint" (K system prompts
