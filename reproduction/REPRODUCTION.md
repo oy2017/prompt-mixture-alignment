@@ -288,6 +288,38 @@ cannot repair; a modest extension (joint residual targeting + decoupled-trait
 crafting) fixes it. Higher-dimensional joints will face the same
 coverage-vs-K economics.
 
+**The method is vector quantization with an LLM decoder — and K is computable,
+not searchable.** On deterministic backbones, fitting K weighted point-masses
+to a known distribution is classical optimal quantization (Lloyd/k-means;
+Zador's theorem). Quantizing the human PG x Dictator joint numerically (zero
+API calls) yields the full K-vs-quality curve: split-half floor 0.0227;
+quantization EMD 0.148/0.097/0.053/0.037/0.030/0.027 at K =
+5/10/25/60/100/150 — matching the Zador K^(-1/2) law in 2D. Two validations:
+(1) our greedy K=25 Stage C (0.0553) ran at ~96% of the K=25 theoretical
+optimum (0.0534) — the crafting step loses almost nothing over perfect
+placement; (2) a VQ-mode refit (`craft2d.py --mode vq`) crafting one persona
+per k-means centroid, K=100, fully parallel, achieved 0.0398 with human-level
+correlation after reweighting (+0.055 vs human +0.057) — within ~25% of the
+human floor and pressing against the 1,000-draw evaluation's own sampling
+limit (shuffle of its own samples: 0.0336). Floor-adjusted, the K=25 -> K=100
+improvement follows the predicted scaling. Practical recipe: quantize the
+target data numerically, read K off the curve, craft one persona per centroid
+in parallel, weight by cluster mass — replacing the paper's LLM-in-the-loop
+search entirely on precisely-steerable backbones. (The paper chose K
+heuristically by action-space size and reported insensitivity — true in 1D
+where the error curve is shallow past the knee, not in 2D.)
+
+**Determinism is not a sampling artifact.** A fitted flash persona answers
+identically 10/10 even at temperature 2.0 (Gemini's maximum). The mechanism
+is deliberation: thinking models converge to the persona's "correct" answer
+regardless of sampling randomness, and the crafting loop selects for prompts
+that pin the mode. Response diversity on deliberative models is a prompting
+property, not a sampling property. Scope note: precise-steerable determinism
+is what makes 1D alignment quantization-optimal, but the same property
+maximizes the 2D correlation pathology and pays the coverage tax — the more
+the task resembles compression, the more determinism helps; the more it
+resembles simulation, the more it hurts.
+
 Artifacts: `joint_results/*.json` (paired samples with persona attribution,
 stage-B analysis embedded), `stageC_flash_PG_Dictator/` (crafted personas,
 weights, fit trace with per-round targets and achieved atoms), scripts

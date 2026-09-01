@@ -23,6 +23,10 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--game-a", default="Public_Goods")
 ap.add_argument("--game-b", default="Dictator")
 ap.add_argument("--rounds", type=int, default=25)
+ap.add_argument("--mode", choices=["greedy", "vq"], default="greedy",
+                help="greedy: kmeans++-style sequential residual targeting; "
+                     "vq: k-means centroids computed up front, crafted in parallel")
+ap.add_argument("--vq-workers", type=int, default=8)
 ap.add_argument("--samples", type=int, default=4, help="test pairs per candidate")
 ap.add_argument("--improve", type=int, default=2)
 ap.add_argument("--outdir", default="../reproduction/stageC_flash_PG_Dictator")
@@ -91,22 +95,40 @@ def craft(target):
 
 
 pool = []  # (prompt, atom_a, atom_b, samples_a, samples_b, target)
-for r in range(args.rounds):
-    if pool:
-        atoms = np.array([[p[1], p[2]] for p in pool]) / scale
-        d = np.linalg.norm(H[:, None, :] / scale - atoms[None, :, :], axis=2).min(axis=1)
-        probs = d ** 2
-        probs = probs / probs.sum()
-        target = H[RNG.choice(len(H), p=probs)]
-    else:
-        target = H[RNG.integers(len(H))]
-    got = craft(target)
-    if got is None:
-        print(f"round {r}: craft failed for target {target}")
-        continue
-    err, prompt, oa, ob, xa, xb = got
-    pool.append((prompt, oa, ob, xa, xb, target.tolist()))
-    print(f"round {r}: target ({int(target[0])},{int(target[1])}) -> atom ({oa},{ob}) err {err:.3f}", flush=True)
+if args.mode == "vq":
+    # Optimal placement first (vector quantization of the human joint), then
+    # craft one persona per centroid — independent, so fully parallel.
+    from scipy.cluster.vq import kmeans2
+    cent, lab = kmeans2(H / scale, args.rounds, minit='++', seed=1)
+    mass = np.bincount(lab, minlength=len(cent))
+    targets = [c * scale for c, m in zip(cent, mass) if m > 0]
+    print(f"VQ mode: {len(targets)} centroids from k-means")
+    with ThreadPoolExecutor(args.vq_workers) as outer:
+        results = list(outer.map(craft, targets))
+    for t, got in zip(targets, results):
+        if got is None:
+            print(f"craft failed for centroid ({t[0]:.1f},{t[1]:.1f})")
+            continue
+        err, prompt, oa, ob, xa, xb = got
+        pool.append((prompt, oa, ob, xa, xb, list(t)))
+        print(f"centroid ({t[0]:.1f},{t[1]:.1f}) -> atom ({oa},{ob}) err {err:.3f}", flush=True)
+else:
+    for r in range(args.rounds):
+        if pool:
+            atoms = np.array([[p[1], p[2]] for p in pool]) / scale
+            d = np.linalg.norm(H[:, None, :] / scale - atoms[None, :, :], axis=2).min(axis=1)
+            probs = d ** 2
+            probs = probs / probs.sum()
+            target = H[RNG.choice(len(H), p=probs)]
+        else:
+            target = H[RNG.integers(len(H))]
+        got = craft(target)
+        if got is None:
+            print(f"round {r}: craft failed for target {target}")
+            continue
+        err, prompt, oa, ob, xa, xb = got
+        pool.append((prompt, oa, ob, xa, xb, target.tolist()))
+        print(f"round {r}: target ({int(target[0])},{int(target[1])}) -> atom ({oa},{ob}) err {err:.3f}", flush=True)
 
 # Voronoi weights over the final atoms (stage-B logic)
 atoms = np.array([[p[1], p[2]] for p in pool]) / scale
