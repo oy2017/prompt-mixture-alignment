@@ -6,7 +6,7 @@ August 29, 2026 against this repository's released code and artifacts.
 
 Models were accessed through OpenRouter, which still serves the paper's exact
 snapshots: `openai/gpt-4o-2024-05-13` (prompt crafting + generation) and
-`openai/gpt-4o-mini-2024-07-18` (answer extraction). Total API cost: **$9.72**.
+`openai/gpt-4o-mini-2024-07-18` (answer extraction).
 
 ## Executive summary — five findings
 
@@ -20,7 +20,8 @@ release bugs had to be fixed to run the code at all.
 paper's own weight-optimization step).** GPT-4o's fitted personas moved to
 Gemini flash: keeping GPT-4o's weights, W-dist 2.04–2.17 (failure); refitting
 only the weights from ~10 flash samples per persona, **0.57**; full refit from
-scratch, 0.31. About 80% of the transfer gap closes at ~1% of refit cost.
+scratch, 0.31. About 80% of the transfer gap closes with ~80 API calls
+instead of a full refit.
 (Both Gemini tiers fail identically without reweighting — the mis-calibration
 is family-shared.)
 
@@ -29,7 +30,7 @@ makes the method work *better* than on GPT-4o while changing what it means.**
 Every fitted persona gives one exact answer 100% of the time (survives
 temperature 2.0; personas have *less* variance than no persona at all). The
 mixture becomes a weighted lookup table — and it beats the paper's GPT-4o
-results on **all 7 games** at ~20x lower cost (e.g. Banker 3.34 vs 9.36).
+results on **all 7 games** (e.g. Banker 3.34 vs 9.36).
 Catch: the paper's metrics cannot tell a lookup table from a population of
 person-like agents — and rate the lookup table higher.
 
@@ -414,8 +415,7 @@ evaluation framework only measures the former.
 
 - **API route**: OpenRouter instead of Azure OpenAI (same model snapshots).
   OpenRouter ignores `n>1`, so multi-sample requests were rewritten as parallel
-  single-sample requests (`play()` in `code/EM_moblab.py`); token cost is slightly
-  higher than the authors', behavior identical.
+  single-sample requests (`play()` in `code/EM_moblab.py`); behavior identical.
 - **Level-2 weights**: not shipped in the repo, re-fitted with a simplified SLSQP
   objective (plain Wasserstein + small L2 regularizer, no KS discount term).
 - **Bug fixes required to run at all** (see git history): MobLab data path,
@@ -427,7 +427,7 @@ evaluation framework only measures the former.
 
 ```bash
 pip install pandas numpy scipy tqdm matplotlib openai
-export OPENROUTER_API_KEY=...   # needs ~$10 credit
+export OPENROUTER_API_KEY=...
 cd code
 
 # Level 2 (replay authors' prompts):
