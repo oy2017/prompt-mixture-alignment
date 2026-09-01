@@ -15,6 +15,9 @@ practicalities, how to re-run everything, artifact index) are in
 
 ## Executive summary — five findings
 
+Terminology, used consistently below: a **persona** is one crafted system
+prompt; a fitted **mixture** is K personas plus their sampling **weights**.
+
 **[1. The paper checks out.](#finding-1--the-paper-checks-out)** Verified at
 three levels of decreasing trust. The method has a training/inference split:
 *training* = the fitting loop that produces a "checkpoint" (K system prompts
@@ -50,10 +53,10 @@ mixture becomes a weighted lookup table — and it beats the paper's GPT-4o
 results on **all 7 games** (e.g. Banker: W-dist 3.34 vs the paper's 9.36).
 
 **[4. EM beats GB on deterministic models, 7/7 — reversing the
-paper.](#finding-4--em-beats-gb-on-deterministic-models)** GB never moves a
-component after placing it; EM re-places them every iteration. When
-components are frozen dots, placement is everything, so the relocating
-algorithm wins.
+paper.](#finding-4--em-beats-gb-on-deterministic-models)** GB never revises
+a persona after adding it; EM rewrites personas every iteration. When each
+persona is locked to one exact answer (finding 3), choosing those answers
+well is everything, so the algorithm that can revise personas wins.
 
 **[5. Extending from 1D to 2D: proposed-but-untested in the paper; we ran
 it.](#finding-5--from-1d-to-2d)** `data/joint.csv` records the same
@@ -71,9 +74,9 @@ $0–100 to a stranger).
   Goods answer perfectly predicts its Dictator answer, unlike real people.
 - *Step 2 — try to fix it by re-tuning weights only:* kept the same
   personas, re-optimized how often each is sampled to match the real pairs.
-  **Result: barely helps; correlation stays +1.0.** The kinds of people
-  needed (generous in one game, stingy in the other) don't exist in the
-  fitted set, and weights can't create them.
+  **Result: barely helps; correlation stays +1.0.** No persona behaves like
+  the people needed (generous in one game, stingy in the other), and weights
+  can't create personas — only re-mix existing ones.
 - *Step 3 — craft new personas against both games at once*, telling the
   model people may behave differently in group vs one-on-one settings.
   **Result: correlation +0.055 vs human +0.057** — matches reality; overall
