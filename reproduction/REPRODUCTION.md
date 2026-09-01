@@ -18,7 +18,8 @@ practicalities, how to re-run everything, artifact index) are in
 **[1. The paper checks out.](#finding-1--the-paper-checks-out)** Verified at
 three levels of decreasing trust. The method has a training/inference split:
 *training* = the fitting loop that produces a "checkpoint" (K system prompts
-+ weights); *inference* = sampling that checkpoint against the game question.
+plus weights); *inference* = sampling that checkpoint against the game
+question.
 We (a) re-ran the *scoring math* on the authors' saved outputs — matches
 their tables (7 games x 2 algorithms); (b) re-ran *inference* on their
 released checkpoint with our own API calls — fresh samples score 0.57, inside
