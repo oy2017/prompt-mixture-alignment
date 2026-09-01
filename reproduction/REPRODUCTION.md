@@ -145,9 +145,9 @@ history on this branch.
 ## Finding 2 — Prompts transfer; weights must be refit
 
 All transfer experiments use the **Public Goods** game (contribute $0–20 of
-an endowment to a group project) and the K=10 mixture fitted on GPT-4o in
-finding 1(c). That mixture (prompts *and* weights) replayed unchanged on
-Gemini, 1,000 fresh samples per run:
+an endowment to a group project); the transferred rows use the K=10 mixture
+fitted on GPT-4o in finding 1(c), and the reweighting row uses the authors'
+released prompts. 1,000 fresh samples per run:
 
 | Configuration | W-dist | mean / std | Wilcoxon |
 |---|---|---|---|
