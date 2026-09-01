@@ -1,0 +1,36 @@
+pair: Public_Goods x Dictator | humans: 2520 | bandwidth 0.05 x range
+
+== predict Dictator from Public_Goods ==
+  constant (population mean, ignores the person): MAE  19.95
+  linear regression fit on the humans themselves: MAE  19.92
+  oracle (conditional median of humans, same bin): MAE  18.99
+  stageA_flash_PG_Dictator                      MAE  36.64
+  stageA_flash_DictatorFitted_PG_Dictator       MAE  24.87
+  stageC_flash_PG_Dictator                      MAE  19.62
+  stageC_vq100_flash_PG_Dictator                MAE  19.53
+
+== predict Public_Goods from Dictator ==
+  constant (population mean, ignores the person): MAE   5.53
+  linear regression fit on the humans themselves: MAE   5.52
+  oracle (conditional median of humans, same bin): MAE   5.45
+  stageA_flash_PG_Dictator                      MAE   7.31
+  stageA_flash_DictatorFitted_PG_Dictator       MAE   7.44
+  stageC_flash_PG_Dictator                      MAE   5.70
+  stageC_vq100_flash_PG_Dictator                MAE   5.62
+
+pair: Proposer x Responder | humans: 5291 | bandwidth 0.05 x range
+
+== predict Responder from Proposer ==
+  constant (population mean, ignores the person): MAE  16.12
+  linear regression fit on the humans themselves: MAE  15.29
+  oracle (conditional median of humans, same bin): MAE  11.81
+  stageA_flash_Proposer_Responder               MAE  12.87
+  stageC_vq100_flash_Prop_Resp                  MAE  13.21
+
+== predict Proposer from Responder ==
+  constant (population mean, ignores the person): MAE  14.00
+  linear regression fit on the humans themselves: MAE  12.93
+  oracle (conditional median of humans, same bin): MAE  12.33
+  stageA_flash_Proposer_Responder               MAE  13.20
+  stageC_vq100_flash_Prop_Resp                  MAE  13.05
+

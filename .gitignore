@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+# datasets that must be downloaded manually (WVS terms forbid redistribution)
+data/data.csv
+data/WVS_Cross-National_Wave_7_csv_v6_0.csv
+# module-import side-effect dumps
+code/wvs_data_evs.csv
+code/df_all_with_score.csv
+# local copy of the paper
+3770855.3818919.pdf

@@ -12,18 +12,18 @@ import re
 
 client_0513 = AzureOpenAI(
     azure_endpoint="https://<endpoint_0513>.openai.azure.com/",
-    api_key="AZURE_API_KEY_0513",
+    api_key=os.getenv("AZURE_API_KEY_0513"),
     api_version="2024-05-01-preview",
 )
 
 client_0718 = AzureOpenAI(
     azure_endpoint="https://<endpoint_0718>.openai.azure.com/",
-    api_key="AZURE_API_KEY_0718",
+    api_key=os.getenv("AZURE_API_KEY_0718"),
     api_version="2024-05-01-preview",
 )
 
 df_all = pd.read_csv('../data/data.csv', sep="\t")
-df_all[df_all.columns.difference(["country"])] = df_all[df_all.columns.difference(["country"])].applymap(int)
+df_all[df_all.columns.difference(["country"])] = df_all[df_all.columns.difference(["country"])].map(int)
 
 changed_qs = ['E2', 'E4', 'E6', 'E8', 'E10', 
               'N2', 'N4', 
@@ -500,17 +500,13 @@ def gb_run(
         result_df.to_csv(dimension+"/"+str(n_test)+'_result.csv')
 
 def main(args):
-    print(f"This is the experiments for {args.game}.") 
-    for i in range(5): 
-        print("---------Run: "+str(i+1)+" Begin---------")  
+    print(f"This is the experiments for {args.dimension}.")
+    for i in range(5):
+        print("---------Run: "+str(i+1)+" Begin---------")
         folder_path = str(args.dimension)
-        os.makedirs(folder_path, exist_ok=True) 
+        os.makedirs(folder_path, exist_ok=True)
         gb_run(args.dimension, i+1)
-
-        folder_path = str("O")
-        os.makedirs(folder_path, exist_ok=True) 
-        gb_run("O", 1)
-        print("---------Run: "+str(i+1)+" End---------")  
+        print("---------Run: "+str(i+1)+" End---------")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is for GB formalization Experiments")

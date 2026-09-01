@@ -11,12 +11,14 @@ import random
 import json
 import pickle
 import argparse
+import os
+import time
+from concurrent.futures import ThreadPoolExecutor
 
-client = OpenAI(
-    api_key ="OPENAI_API_KEY",
-)
+# Backbone selected by PMA_PROVIDER (default: the paper's GPT-4o snapshots).
+from providers import client, GEN_MODEL, EXTRACT_MODEL, GEN_MAX_TOKENS, PROVIDER
 
-df_joint = pd.read_csv('../joint.csv')
+df_joint = pd.read_csv('../data/joint.csv')
 
 df_joint.rename(columns={
     'dictator': 'Dictator',
@@ -35,7 +37,7 @@ game2inst = {
     'Responder': "This is a two-player game. You are the Responder, and the other player is the Proposer. The proposer proposes how to divide $100 and you, as the Responder, choose either Accept or Reject. If accepted, the two of you will earn as described by the accepted proposal accordingly. If rejected, then both of you will earn $0. \nAs the Responder, what is the minimal amount in the proposal that you would accept? Please give only one concrete choice, and highlight the amount with [] (such as [$x]).",
     'Investor': "This is a two-player game. You are an Investor and the other player is a Banker. You have $100 to invest and you choose how much of your money to invest with the Banker. The amount you choose to invest will grow by 3x with the Banker. For example, if you invest $10, it will grow to $30 with the Banker. The Banker then decides how much of the money ($0-$30) to return to you, the Investor.\nHow much of the $100 would you like to invest with the Banker? Please give only one concrete choice, and highlight the number with [] (such as [$x]).",
     'Banker': "This is a two-player game. You are a Banker and the other player is an Investor, and the goal for each player is to earn more. The Investor chooses how much of the money (up to $100) to invest with you. The amount the Investor invests will generate a 2x return with you (the current value of investment becomes 3x).  To settle the investment, as the Banker, you get to decide how much of this total amount to return to the Investor and the rest will be kept as your profit.  For example, you can choose to return $0 (therefore the investor will lose their investment), or you can return the entire 3x (initial investment + 2x profit) to the investor, or you can return any amount in between.\nNow, if the investor has invested $50 with you and the current value became $150, how much of the $150 would you like to return to the Investor? Please give only one concrete choice, and highlight the number with [] (such as [$x]).",
-    'Public Goods': "In this public good game, you and 3 others will choose how much to contribute towards a water cleaning project. Each of you gets $20 per round to contribute between $0 and $20. The project has a 50% return rate. Your payoff relies on both your and others' contributions. Everyone benefits from the group's total contribution. Your payoff in each round equals the amount you didn't contribute (endowment - contribution) plus everyone's benefit (total contributions * 50% return rate). Here are two examples to calculate your payoff.\n\nExample one: You contributed $12; total group contributions were $20\n\nYour Payoff = ($20-$12) + $20*50% = $18\n\nExample two: You contributed $12; total group contributions were $30\n\nYour Payoff = ($20-$12) + $30*50% = $23\n\nWe will play a total of 3 rounds, in the first round, how much of the $20 would you like to contribute? Please give a concrete number and highlight it with [] (e.g., [x]).",
+    'Public_Goods': "In this public good game, you and 3 others will choose how much to contribute towards a water cleaning project. Each of you gets $20 per round to contribute between $0 and $20. The project has a 50% return rate. Your payoff relies on both your and others' contributions. Everyone benefits from the group's total contribution. Your payoff in each round equals the amount you didn't contribute (endowment - contribution) plus everyone's benefit (total contributions * 50% return rate). Here are two examples to calculate your payoff.\n\nExample one: You contributed $12; total group contributions were $20\n\nYour Payoff = ($20-$12) + $20*50% = $18\n\nExample two: You contributed $12; total group contributions were $30\n\nYour Payoff = ($20-$12) + $30*50% = $23\n\nWe will play a total of 3 rounds, in the first round, how much of the $20 would you like to contribute? Please give a concrete number and highlight it with [] (e.g., [x]).",
     'Bomb': "There are 100 boxes, and one bomb has been randomly placed in 1 of 100 boxes. You can choose to open 0-100 boxes at the same time. If none of the boxes you open has the bomb, you earn points that are equal to the number of boxes you open. If one of the boxes you open has the bomb, you earn zero points.  How many boxes would you open? Please give one concrete number and highlight it with [] (such as [x]).",
 }
 
@@ -45,7 +47,7 @@ gamerange = {
     'Responder': 100,
     'Investor': 100,
     'Banker': 150,
-    'Public Goods': 20,
+    'Public_Goods': 20,
     'Bomb': 100,
 
 }
@@ -100,51 +102,56 @@ Using your crafted system prompt, a chatbot outputs mostly {sampled_behavior} in
 {output_format}
 '''
 
+# Writing a system prompt needs more room than answering a game, and a thinking
+# backbone spends part of any budget on hidden reasoning.
+CRAFT_MAX_TOKENS = max(GEN_MAX_TOKENS, 2000)
+
+
+from providers import api_call as _api_call
+
+
+def _play_one(game, system_prompt):
+    # OpenRouter ignores n>1, so each sample is its own request.
+    completion = _api_call(GEN_MODEL, [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": game2inst[game]}
+    ])
+    response = completion.choices[0].message.content
+
+    for _ in range(5):
+        completion = _api_call(EXTRACT_MODEL, [
+            {"role": "system", "content": "You are a helpful assistant who helps extract the choice in a conversation. With a conversation between a user and a chatbot provided, please extract the chatbot's choice regarding the user's question. "},
+            {"role": "user", "content": game2inst[game]},
+            {"role": "assistant", "content": response},
+            {"role": "user", "content": "Please output one single integer number that stands for the choice without anything else:"}
+        ])
+        try:
+            choice = completion.choices[0].message.content
+            choice = ''.join(filter(str.isdigit, choice))
+            return int(choice), completion.to_dict()
+        except Exception:
+            pass
+    return None, None
+
+
 def play(
-        game, 
-        system_prompt="You are a helpful assistant.", 
+        game,
+        system_prompt="You are a helpful assistant.",
         n_choices=1
     ):
-    
-    completion = client.chat.completions.create(
-        # model="gpt-4o-2024-08-06",
-        model='gpt-4o-2024-05-13',
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": game2inst[game]}
-        ],
-        n=n_choices,
-    )
-
-    responses = [choice.message.content for choice in completion.choices]
     choices = []
     completions = []
-
-    for response in responses:
-        while True:
-            completion = client.chat.completions.create(
-                # model='gpt-4o-2024-05-13',
-                model='gpt-4o-mini-2024-07-18',
-                messages=[
-                    # {"role": "system", "content": system_prompt},
-                    {"role": "system", "content": "You are a helpful assistant who helps extract the choice in a conversation. With a conversation between a user and a chatbot provided, please extract the chatbot's choice regarding the user's question. "},
-                    {"role": "user", "content": game2inst[game]},
-                    {"role": "assistant", "content": response},
-                    {"role": "user", "content": "Please output one single integer number that stands for the choice without anything else:"}
-                ],
-            )
-            try:
-                choice = completion.choices[0].message.content
-                choice = ''.join(filter(str.isdigit, choice))
-                choice = int(choice)
-                choices.append(choice)
-                completions.append(completion.to_dict())
-                # print(f"Response: {response}")
-                # print(f"Choice: {choice}")
-                break
-            except:
-                pass
-
+    for _ in range(3):  # retry batches until n_choices collected
+        missing = n_choices - len(choices)
+        if missing <= 0:
+            break
+        with ThreadPoolExecutor(min(missing, 10)) as ex:
+            futs = [ex.submit(_play_one, game, system_prompt) for _ in range(missing)]
+            for f in futs:
+                c, comp = f.result()
+                if c is not None:
+                    choices.append(c)
+                    completions.append(comp)
     return choices, completions
 
 
@@ -165,19 +172,18 @@ def craft_system_prompt(
     ]
 
     def craft():
-        completion = client.chat.completions.create(
-            # model="gpt-4o-2024-08-06",
-            model="gpt-4o-2024-05-13",
-            messages=messages,
-            n=1,
-        )
+        completion = _api_call(GEN_MODEL, messages, max_tokens=CRAFT_MAX_TOKENS)
 
         prompt = completion.choices[0].message.content
         choice = play(
-            game, 
-            system_prompt=prompt, 
+            game,
+            system_prompt=prompt,
             n_choices=n_sample_per_learner
         )[0]
+
+        if len(choice) == 0:
+            last_modes.append(None)
+            return
 
         last_mode = statistics.mode(choice)
         last_modes.append(last_mode)
@@ -248,12 +254,19 @@ def initialization(
                     replace=False
                 ).tolist()
 
-    for disired_behavior in tqdm(sampled_desired_behavior):
-        prompts, choices, desired = craft_system_prompt(
-            game_name,
-            disired_behavior,
-        )
+    # Each target's craft loop is independent; PMA_INIT_WORKERS parallelizes
+    # across targets (each already parallelizes its own 10 test samples).
+    init_workers = int(os.getenv("PMA_INIT_WORKERS", "1"))
+    if init_workers > 1:
+        with ThreadPoolExecutor(init_workers) as ex:
+            results = list(ex.map(
+                lambda b: craft_system_prompt(game_name, b),
+                sampled_desired_behavior))
+    else:
+        results = [craft_system_prompt(game_name, b)
+                   for b in tqdm(sampled_desired_behavior)]
 
+    for prompts, choices, desired in results:
         if len(choices) == 0:
             continue
 
@@ -563,15 +576,17 @@ def em_play(
 
 def main(args):
     print(f"This is the experiments for {args.game}.")
-    for i in range(5): 
-        print("---------Run: "+str(i+1)+" Begin---------")  
+    for i in range(args.runs):
+        print("---------Run: "+str(i+1)+" Begin---------")
+        os.makedirs(args.game+"/"+str(i+1)+"_result", exist_ok=True)
         em_play(i+1, args.game, args.K)
-        print("---------Run: "+str(i+1)+" End---------")  
+        print("---------Run: "+str(i+1)+" End---------")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This is for EM formalization Experiments")
     parser.add_argument("--game", type=str)
     parser.add_argument("--K", type=int)
+    parser.add_argument("--runs", type=int, default=5)
     
     args = parser.parse_args()
     main(args)
