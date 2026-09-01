@@ -32,15 +32,14 @@ We verified:
 
 Seven release bugs had to be fixed to run the code at all.
 
-**[2. Prompts transfer across models if you refit the weights (using the
-paper's own weight-optimization step).](#finding-2--prompts-transfer-weights-must-be-refit)**
-Tested on Public Goods: GPT-4o's fitted personas moved to Gemini flash —
-keeping GPT-4o's weights, W-dist 2.04–2.17 (failure); refitting only the
-weights from ~10 flash samples per persona, **0.57**; full refit from
-scratch, 0.31. About 80% of the
-transfer gap closes with ~80 API calls instead of a full refit. (Both Gemini
-tiers fail identically without reweighting — the mis-calibration is
-family-shared.)
+**[2. Personas transfer across models; weights do not.](#finding-2--prompts-transfer-weights-must-be-refit)**
+Tested on Public Goods. A mixture has two learned parts — the persona texts
+and their weights — and they behave differently across backbones: moving
+GPT-4o's mixture to Gemini wholesale fails (W-dist 2.04–2.17 vs 0.43 at
+home), but the persona texts themselves remain usable — refitting *only the
+weights* against the new backbone recovers most of the alignment (**0.57**),
+and a full refit recovers all of it (0.31). The mis-calibration is also
+family-shared: both Gemini tiers fail identically before reweighting.
 
 **[3. With a crafted system prompt, Gemini is perfectly deterministic — which
 makes the method work *better* than on GPT-4o while changing what it
@@ -180,10 +179,17 @@ flash** (34.1% vs 34.0% of samples at $20, same components saturating), so
 persona→behavior calibration is a model-family trait, not a capability
 effect.
 
-The repair is the paper's own weight-optimization step, re-run against ~10
-samples per persona from the *new* backbone (~80 calls total): W-dist drops
-from 2.04–2.17 to 0.57. A full refit (finding 3) reaches 0.31 — so weight
-recalibration alone recovers about 80% of the gap.
+**The repair algorithm** is the paper's own weight-optimization step, re-run
+against the new backbone: hold the persona texts fixed, draw ~10 samples per
+persona *from the new model* to measure what each persona now produces, then
+re-optimize the mixture weights against the human distribution (for
+deterministic personas this reduces to nearest-answer assignment — each human
+data point counts toward the persona whose answer is closest). W-dist drops
+from 2.04–2.17 to 0.57; a full refit (finding 3) reaches 0.31 — weight
+recalibration alone recovers about 80% of the gap at a small fraction of the
+API calls. The interpretation: persona *semantics* carry across models, but
+the mapping from semantics to numeric behavior is model-specific, and the
+weights encode that calibration.
 
 ---
 
