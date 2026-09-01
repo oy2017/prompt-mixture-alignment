@@ -67,7 +67,7 @@ people), so this extends in principle to 7D; we ran the 2-game case:
 $0–100 to a stranger).
 
 - *Ground truth:* 2,520 real participants answered both games. Their two
-  answers are nearly unrelated — correlation +0.06. Knowing someone's group
+  answers are nearly unrelated — correlation +0.057. Knowing someone's group
   contribution tells you almost nothing about their gift to a stranger.
 - *Step 1 — test the paper's 1D fit on a second game:* took the system prompts
   fitted on Public Goods only; asked each one both questions; generated
