@@ -60,15 +60,27 @@ it.](#finding-5--from-1d-to-2d)** `data/joint.csv` records the same
 participant's decisions across up to 7 games (pairwise overlap 2,500–5,300
 people), so this extends in principle to 7D; we ran the 2-game case:
 **Public Goods** (contribute $0–20 to a group project) x **Dictator** (give
-$0–100 to a stranger). We took personas fitted on one game (Public Goods)
-and asked them the second game's question (Dictator), so each simulated
-person has a pair of answers — just like each real participant does. In the
-simulated crowd, one answer perfectly predicts the other (correlation +1.00:
-whoever gives most in one game always gives most in the other). In real
-people, the two answers are nearly unrelated (+0.06). Fitting both games
-together fixes this — simulated correlation +0.055 vs human +0.057 — though
-each single game's histogram then comes out somewhat less accurate than when
-that game is fitted alone.
+$0–100 to a stranger).
+
+- *Ground truth:* 2,520 real participants answered both games. Their two
+  answers are nearly unrelated — correlation +0.06. Knowing someone's group
+  contribution tells you almost nothing about their gift to a stranger.
+- *Step 1 — test the paper's 1D fit on a second game:* took the personas
+  fitted on Public Goods only; asked each one both questions; generated
+  1,000 answer-pairs. **Result: correlation +1.00** — a persona's Public
+  Goods answer perfectly predicts its Dictator answer, unlike real people.
+- *Step 2 — try to fix it by re-tuning weights only:* kept the same
+  personas, re-optimized how often each is sampled to match the real pairs.
+  **Result: barely helps; correlation stays +1.0.** The kinds of people
+  needed (generous in one game, stingy in the other) don't exist in the
+  fitted set, and weights can't create them.
+- *Step 3 — craft new personas against both games at once*, telling the
+  model people may behave differently in group vs one-on-one settings.
+  **Result: correlation +0.055 vs human +0.057** — matches reality; overall
+  2D mismatch close to the limit set by sampling noise.
+- *Step 4 — check the price:* score each game's histogram from the two-game
+  fit by itself. **Result: somewhat less accurate than fitting that game
+  alone** (Public Goods W-dist 0.47 vs 0.31; Dictator 1.56 vs 0.68).
 
 ---
 
