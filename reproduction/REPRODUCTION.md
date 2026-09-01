@@ -359,7 +359,7 @@ Crafting against the human *joint* — targets placed by clustering the real
 pairs, and one change to the crafting instruction: describe people who *may
 behave differently* in group vs one-on-one settings (`code/craft2d.py`):
 
-| PG x Dictator | mixture fitted on one game (the paper's method) | fitted on both games, K=25 | fitted on both games, K=100 | real people |
+| PG x Dictator | fitted on Public Goods only (the paper's method) | fitted on both games, K=25 | fitted on both games, K=100 | real people |
 |---|---|---|---|---|
 | Cross-game correlation (Spearman: +1 = one answer perfectly predicts the other; 0 = unrelated) | +1.000 | +0.042 | +0.055 (reweighted) | +0.057 |
 | Overall 2D mismatch (earth-mover distance with both game ranges rescaled to 0–1; lower = generated pairs closer to real pairs) | 0.319 | 0.055 | **0.040** | floor 0.032 |
