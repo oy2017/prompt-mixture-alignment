@@ -54,6 +54,8 @@ occupy (contributes $10 to the group, gives the stranger $0) contain no dots,
 and reweighting cannot help — you cannot reweight dots into places where none
 exist.
 
+![Same person, two games: 1D-fitted personas fall on a line; joint-fitted personas spread like real people](figures/2d_diagonal_vs_spread.png)
+
 *The fix, and the price:* fit both games together — large K (100), targets
 placed by clustering the real pairs, and one change to the crafting
 instruction: describe people who *may behave differently* in group vs
