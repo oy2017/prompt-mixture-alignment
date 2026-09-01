@@ -13,7 +13,7 @@ its evidence section. Operational details (setup deviations, environment
 practicalities, how to re-run everything, artifact index) are in
 [APPENDIX.md](APPENDIX.md).
 
-## Executive summary — five findings
+## Executive summary — six findings
 
 Terminology, used consistently below: a fitted **mixture** is K crafted
 **system prompts** (each a character description: "You are a cautious...")
@@ -96,6 +96,17 @@ $0–100 to a stranger).
   score each game's histogram from the two-game fit by itself. **Result:
   somewhat less accurate than fitting that game alone** (Public Goods W-dist
   0.47 vs 0.31; Dictator 1.56 vs 0.68).
+
+**[6. Predicting a person, not just a population.](#finding-6--predicting-a-person-not-just-a-population)**
+A harder test than matching the crowd: show the mixture one real person's
+answer to one game and have it guess that same person's answer to the other
+game (average guessing error in dollars, lower is better). On the
+nearly-unrelated game pair, the mixture fitted on one game guesses **almost
+2x worse than ignoring the person entirely** — it confidently assumes
+generous-here-means-generous-there. The two-game fit is safe on both pairs
+we tested: at or near the best guess the human data allows, and on the
+genuinely-related pair (Proposer x Responder) both mixtures beat a
+regression line fitted on the humans themselves.
 
 ---
 
@@ -455,6 +466,96 @@ wrong.
 
 ---
 
+## Finding 6 — Predicting a person, not just a population
+
+Everything above scores the *crowd*: does the generated pile of answers look
+like the human pile? A social-simulation user usually wants more — given
+what one person already did, predict what *that person* does next. This is a
+sharper test of whether the mixture's K "kinds of people" are real kinds.
+
+### The test
+
+For each real participant who answered both games:
+
+- Show the mixture the person's answer to game A; hide their game B answer.
+- Keep the system prompts whose own game-A answer is close to the person's
+  (weighting by closeness and by mixture weight) — "cross off the kinds of
+  people who wouldn't have answered that."
+- The surviving system prompts' game-B answers, weighted, are the guess.
+- Score: average |guess − actual| in dollars, over all participants.
+
+Three reference points bracket every result. **Constant**: guess the
+population average for everyone (what you get by ignoring the person — any
+useful predictor must beat it). **Regression**: a straight line fitted on
+the human data itself. **Best possible**: the median answer of the real
+humans who gave the same game-A answer (no predictor that only sees game A
+can reliably beat this).
+
+Zero new API calls: on flash every system prompt's answer to both games is
+already recorded in the stage A/C artifacts (finding 3's determinism), so
+the whole test is arithmetic on saved files (`code/predict_joint.py`).
+
+### Pair 1: Public Goods x Dictator (nearly unrelated, correlation +0.057)
+
+Guessing a person's Dictator answer from their Public Goods answer:
+
+| predictor | avg error ($) |
+|---|---|
+| mixture fitted on Public Goods only | **36.6 — almost 2x worse than knowing nothing** |
+| mixture fitted on Dictator only | 24.9 |
+| constant (ignore the person) | 20.0 |
+| regression | 19.9 |
+| two-game fit, K=25 / K=100 | 19.6 / **19.5** |
+| best possible | 19.0 |
+
+The 1D-fitted mixture is *confidently wrong*: every one of its system
+prompts is generous-in-both or stingy-in-both (finding 5's diagonal), so it
+projects the person's Public Goods answer onto the wrong game. The two-game
+fits learn the truth — that on this pair one answer barely predicts the
+other — and land at the best-possible level. The reverse direction
+(predicting Public Goods from Dictator) repeats the pattern: 7.3 / 7.4 for
+the 1D fits vs 5.6–5.7 for the two-game fits (constant 5.5, best possible
+5.5).
+
+### Pair 2: Proposer x Responder (genuinely related, correlation +0.291)
+
+First, the missing arm: we repeated the stage C recipe on this pair (K=100,
+crafted jointly). At the population level it behaves like the Public Goods x
+Dictator one — correlation +0.302 vs human +0.291, overall 2D mismatch
+0.0316 vs the 0.0270 floor (the 1D-fitted mixture: 0.075).
+
+Guessing a person's Responder answer from their Proposer answer:
+
+| predictor | avg error ($) |
+|---|---|
+| constant (ignore the person) | 16.1 |
+| regression | 15.3 |
+| two-game fit, K=100 | 13.2 |
+| mixture fitted on Proposer only | **12.9** |
+| best possible | 11.8 |
+
+Here both mixtures genuinely predict — beating the regression line, most of
+the way to the best-possible score. The reverse direction is a tie between
+the two mixtures (13.2 vs 13.1; regression 12.9). Note *why* the 1D fit
+does well here: its built-in trait consistency (+0.295 across the two roles)
+happens to almost exactly match real human consistency on this pair
+(+0.291). That is luck, not design — the very same built-in consistency was
+the catastrophic +1.00-vs-+0.057 mismatch on the other pair.
+
+### Takeaway
+
+Whether a fitted mixture can stand in for *individuals* depends entirely on
+whether its cross-game behavior matches the real pair. One-game fitting
+leaves that to chance: fine on Proposer x Responder, almost 2x worse than
+knowing nothing on Public Goods x Dictator — and nothing in the paper's
+single-game scores warns you which case you're in. Two-game fitting is the
+safe choice: at or near best-possible on both pairs, never worse than
+ignoring the person. Results are stable across the closeness-bandwidth
+settings tested (2%, 5%, 10% of the answer range); full numbers in
+`reproduction/joint_results/individual_prediction.txt`.
+
+---
+
 ## Verdict
 
 The paper's central claim — that a learned mixture of system prompts
@@ -474,7 +575,11 @@ the choice of algorithm interacts with that mechanism (finding 4); and the
 1D-fitted mixtures imply joint behavior no human population has, which only a
 joint-aware refit — not reweighting — repairs (finding 5). Distributional
 alignment (population level) and simulation fidelity (individual level) come
-apart, and the paper's evaluation framework measures only the former.
+apart, and the paper's evaluation framework measures only the former — used
+to predict individuals, a 1D-fitted mixture ranges from genuinely predictive
+to far worse than ignoring the person, depending on luck the single-game
+scores cannot detect, while a joint fit is safe on both pairs tested
+(finding 6).
 
 Operational details, environment practicalities, commands to re-run
 everything, and the artifact index: [APPENDIX.md](APPENDIX.md).

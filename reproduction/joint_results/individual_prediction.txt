@@ -25,10 +25,12 @@ pair: Proposer x Responder | humans: 5291 | bandwidth 0.05 x range
   linear regression fit on the humans themselves: MAE  15.29
   oracle (conditional median of humans, same bin): MAE  11.81
   stageA_flash_Proposer_Responder               MAE  12.87
+  stageC_vq100_flash_Prop_Resp                  MAE  13.21
 
 == predict Proposer from Responder ==
   constant (population mean, ignores the person): MAE  14.00
   linear regression fit on the humans themselves: MAE  12.93
   oracle (conditional median of humans, same bin): MAE  12.33
   stageA_flash_Proposer_Responder               MAE  13.20
+  stageC_vq100_flash_Prop_Resp                  MAE  13.05
 
