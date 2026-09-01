@@ -20,12 +20,16 @@ three levels of decreasing trust. The method has a training/inference split:
 *training* = the fitting loop that produces a "checkpoint" (K system prompts
 plus weights); *inference* = sampling that checkpoint against the game
 question.
-We (a) re-ran the *scoring math* on the authors' saved outputs — matches
-their tables (7 games x 2 algorithms); (b) re-ran *inference* on their
-released checkpoint with our own API calls — fresh samples score 0.57, inside
-their runs' 0.59–0.95 range; (c) re-ran *training* from scratch on the exact
-GPT-4o snapshot (one game, Public Goods) — beats the published number (W-dist
-0.43 vs 0.47). Seven release bugs had to be fixed to run the code at all.
+We verified:
+
+- (a) re-ran the *scoring math* on the authors' saved outputs — matches their
+  tables (7 games x 2 algorithms);
+- (b) re-ran *inference* on their released checkpoint with our own API calls
+  — fresh samples score 0.57, inside their runs' 0.59–0.95 range;
+- (c) re-ran *training* from scratch on the exact GPT-4o snapshot (one game,
+  Public Goods) — beats the published number (W-dist 0.43 vs 0.47).
+
+Seven release bugs had to be fixed to run the code at all.
 
 **[2. Prompts transfer across models if you refit the weights (using the
 paper's own weight-optimization step).](#finding-2--prompts-transfer-weights-must-be-refit)**
