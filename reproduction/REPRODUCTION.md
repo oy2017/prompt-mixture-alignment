@@ -22,8 +22,9 @@ plus weights); *inference* = sampling that checkpoint against the game
 question.
 We verified:
 
-- (a) re-ran the *scoring math* on the authors' saved outputs — matches their
-  tables (7 games x 2 algorithms);
+- (a) re-ran the *scoring math* on the authors' saved inference outputs (the
+  simulated game answers their fitted mixtures generated, shipped in
+  `intermediate_results/`) — matches their tables (7 games x 2 algorithms);
 - (b) re-ran *inference* on their released checkpoint with our own API calls
   — fresh samples score 0.57, inside their runs' 0.59–0.95 range;
 - (c) re-ran *training* from scratch on the exact GPT-4o snapshot (one game,
