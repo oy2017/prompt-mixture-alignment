@@ -351,8 +351,8 @@ behave differently* in group vs one-on-one settings (`code/craft2d.py`):
 
 | PG x Dictator | 1D mixture | joint fit K=25 | joint fit K=100 | human |
 |---|---|---|---|---|
-| Spearman | +1.000 | +0.042 | +0.055 (reweighted) | +0.057 |
-| 2D EMD | 0.319 | 0.055 | **0.040** | floor 0.032 |
+| Cross-game correlation (Spearman: +1 = one answer perfectly predicts the other; 0 = unrelated) | +1.000 | +0.042 | +0.055 (reweighted) | +0.057 |
+| Overall 2D mismatch (earth-mover distance; lower = generated pairs closer to real pairs) | 0.319 | 0.055 | **0.040** | floor 0.032 |
 
 The crafted system prompts hit off-diagonal targets exactly (e.g. contribute
 $10/20 in Public Goods, give $0/100 in Dictator); correlation becomes
