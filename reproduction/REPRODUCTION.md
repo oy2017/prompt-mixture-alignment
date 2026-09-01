@@ -8,6 +8,66 @@ Models were accessed through OpenRouter, which still serves the paper's exact
 snapshots: `openai/gpt-4o-2024-05-13` (prompt crafting + generation) and
 `openai/gpt-4o-mini-2024-07-18` (answer extraction). Total API cost: **$9.72**.
 
+## Executive summary — five findings
+
+**1. The paper checks out.** Its released artifacts recompute to the published
+tables (7 games x 2 algorithms); replaying its prompts with fresh API calls
+matches; a full from-scratch refit on the exact GPT-4o snapshot — done for one
+game, Public Goods — beats the published number (W-dist 0.43 vs 0.47). Seven
+release bugs had to be fixed to run the code at all.
+
+**2. Prompts transfer across models if you refit the weights (using the
+paper's own weight-optimization step).** GPT-4o's fitted personas moved to
+Gemini flash: keeping GPT-4o's weights, W-dist 2.04–2.17 (failure); refitting
+only the weights from ~10 flash samples per persona, **0.57**; full refit from
+scratch, 0.31. About 80% of the transfer gap closes at ~1% of refit cost.
+(Both Gemini tiers fail identically without reweighting — the mis-calibration
+is family-shared.)
+
+**3. With a crafted system prompt, Gemini is perfectly deterministic — which
+makes the method work *better* than on GPT-4o while changing what it means.**
+Every fitted persona gives one exact answer 100% of the time (survives
+temperature 2.0; personas have *less* variance than no persona at all). The
+mixture becomes a weighted lookup table — and it beats the paper's GPT-4o
+results on **all 7 games** at ~20x lower cost (e.g. Banker 3.34 vs 9.36).
+Catch: the paper's metrics cannot tell a lookup table from a population of
+person-like agents — and rate the lookup table higher.
+
+**4. EM beats GB on deterministic models, 7/7 — reversing the paper.** GB
+never moves a component after placing it; EM re-places them every iteration.
+When components are frozen dots, placement is everything, so the relocating
+algorithm wins.
+
+**5. Extending from 1D to 2D: proposed-but-untested in the paper; we ran
+it.** `data/joint.csv` records the same participant's decisions across up to
+7 games (pairwise overlap 2,500–5,300 people), so this extends in principle
+to 7D; we ran the 2-game case: **Public Goods** (contribute $0–20 to a group
+project) x **Dictator** (give $0–100 to a stranger).
+
+*What goes wrong with the 1D method:* take the mixture fitted on Public Goods
+and have its personas also answer the Dictator question; plot each generated
+pair as a dot (x = group contribution, y = gift). Real humans scatter across
+the plane — one behavior barely predicts the other (correlation +0.06). The
+generated dots fall on a single rising line (+1.00): whichever persona gives
+most in one game gives most in the other, every time. Regions real people
+occupy (contributes $10 to the group, gives the stranger $0) contain no dots,
+and reweighting cannot help — you cannot reweight dots into places where none
+exist.
+
+*The fix, and the price:* fit both games together — large K (100), targets
+placed by clustering the real pairs, and one change to the crafting
+instruction: describe people who *may behave differently* in group vs
+one-on-one settings. Generated dots then spread like the real ones
+(correlation +0.055 vs human +0.057; 2D mismatch near the sampling-noise
+limit). Doable — but not free: viewed game-by-game, the joint fit's
+histograms are ~1.5–2x worse than dedicated single-game fits (Public Goods
+0.47 vs 0.31; Dictator 1.56 vs 0.68) — on par with the paper's published
+GPT-4o quality, below our best 1D fits. One fit that gets the *combinations*
+right, versus separate fits that get each game sharpest and the combinations
+entirely wrong.
+
+---
+
 ## Validation levels and results
 
 ### Level 1 — recompute published tables from released artifacts (free)
