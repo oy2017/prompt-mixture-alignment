@@ -92,9 +92,10 @@ $0–100 to a stranger).
   model people may behave differently in group vs one-on-one settings.
   **Result: correlation +0.055 vs human +0.057** — matches reality; overall
   2D mismatch close to the limit set by sampling noise.
-- *Step 4 — check the price:* score each game's histogram from the two-game
-  fit by itself. **Result: somewhat less accurate than fitting that game
-  alone** (Public Goods W-dist 0.47 vs 0.31; Dictator 1.56 vs 0.68).
+- *Step 4 — check what fitting both games costs in single-game accuracy:*
+  score each game's histogram from the two-game fit by itself. **Result:
+  somewhat less accurate than fitting that game alone** (Public Goods W-dist
+  0.47 vs 0.31; Dictator 1.56 vs 0.68).
 
 ---
 
@@ -414,7 +415,7 @@ prompts instead describe context-dependent people, including strongly
 Full texts for every fitted system prompt are in the artifact CSVs and
 `fit_trace.json` files (see the appendix's artifact index).
 
-### The price: per-game accuracy of the two-game fit
+### The trade-off: the two-game fit is slightly less accurate on each single game
 
 Method: take the K=100 two-game fit's 1,000 generated answer-pairs and look
 at each game's column separately (keep only the Public Goods answers, then
