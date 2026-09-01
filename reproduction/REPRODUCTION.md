@@ -60,10 +60,15 @@ it.](#finding-5--from-1d-to-2d)** `data/joint.csv` records the same
 participant's decisions across up to 7 games (pairwise overlap 2,500–5,300
 people), so this extends in principle to 7D; we ran the 2-game case:
 **Public Goods** (contribute $0–20 to a group project) x **Dictator** (give
-$0–100 to a stranger). The 1D-fitted personas imply a society where one
-behavior perfectly predicts the other (correlation +1.00 vs the human +0.06);
-fitting both games together fixes it (+0.055 vs +0.057), at a measurable
-per-game precision cost.
+$0–100 to a stranger). We took personas fitted on one game (Public Goods)
+and asked them the second game's question (Dictator), so each simulated
+person has a pair of answers — just like each real participant does. In the
+simulated crowd, one answer perfectly predicts the other (correlation +1.00:
+whoever gives most in one game always gives most in the other). In real
+people, the two answers are nearly unrelated (+0.06). Fitting both games
+together fixes this — simulated correlation +0.055 vs human +0.057 — though
+each single game's histogram then comes out somewhat less accurate than when
+that game is fitted alone.
 
 ---
 
