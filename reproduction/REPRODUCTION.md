@@ -363,7 +363,7 @@ behave differently* in group vs one-on-one settings (`code/craft2d.py`):
 | PG x Dictator | fitted on Public Goods only (the paper's method) | fitted on both games, K=25 | fitted on both games, K=100 | real people |
 |---|---|---|---|---|
 | Cross-game correlation (Spearman: +1 = one answer perfectly predicts the other; 0 = unrelated) | +1.000 | +0.042 | +0.055 (reweighted) | +0.057 |
-| Overall 2D mismatch (earth-mover distance with both game ranges rescaled to 0–1; lower = generated pairs closer to real pairs) | 0.319 | 0.055 | **0.040** | floor 0.032 |
+| Overall 2D mismatch (earth-mover distance; note: NOT on the dollar scale of the 1D tables — both game ranges are rescaled to 0–1, and the best achievable score is the 0.032 floor) | 0.319 — **10x worse than the floor** | 0.055 (1.7x floor) | **0.040 (1.3x floor)** | 0.032 (the floor: sampling noise between two groups of real humans) |
 
 Reading the table: the column names say which data *fitted* each mixture;
 both rows *measure* two-game behavior — every system prompt was asked both
