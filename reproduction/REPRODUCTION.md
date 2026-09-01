@@ -47,9 +47,7 @@ GPT-4o.](#finding-3--gemini-personas-are-deterministic-the-mixture-is-a-lookup-t
 Every fitted persona gives one exact answer 100% of the time (survives
 temperature 2.0; personas have *less* variance than no persona at all). The
 mixture becomes a weighted lookup table — and it beats the paper's GPT-4o
-results on **all 7 games** (e.g. Banker 3.34 vs 9.36). Catch: the paper's
-metrics cannot tell a lookup table from a population of person-like agents —
-and rate the lookup table higher.
+results on **all 7 games** (e.g. Banker 3.34 vs 9.36).
 
 **[4. EM beats GB on deterministic models, 7/7 — reversing the
 paper.](#finding-4--em-beats-gb-on-deterministic-models)** GB never moves a
