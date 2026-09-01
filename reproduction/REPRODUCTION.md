@@ -41,9 +41,9 @@ weights* against the new backbone recovers most of the alignment (**0.57**),
 and a full refit recovers all of it (0.31). The mis-calibration is also
 family-shared: both Gemini tiers fail identically before reweighting.
 
-**[3. With a crafted system prompt, Gemini is perfectly deterministic — which
-makes the method work *better* than on GPT-4o while changing what it
-means.](#finding-3--gemini-personas-are-deterministic-the-mixture-is-a-lookup-table)**
+**[3. With a crafted system prompt, Gemini is perfectly deterministic — and
+the method works *better* than on
+GPT-4o.](#finding-3--gemini-personas-are-deterministic-the-mixture-is-a-lookup-table)**
 Every fitted persona gives one exact answer 100% of the time (survives
 temperature 2.0; personas have *less* variance than no persona at all). The
 mixture becomes a weighted lookup table — and it beats the paper's GPT-4o
