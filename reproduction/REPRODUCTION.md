@@ -16,7 +16,11 @@ practicalities, how to re-run everything, artifact index) are in
 ## Executive summary — five findings
 
 Terminology, used consistently below: a **persona** is one crafted system
-prompt; a fitted **mixture** is K personas plus their sampling **weights**.
+prompt — the paper's own term is "system prompt"; we use *persona* as its
+shorthand since the crafted prompts are character descriptions ("You are a
+cautious..."), and it should not be confused with the paper's *persona-based
+baselines* (PersonaHub, OASIS), which use predefined demographic personas. A
+fitted **mixture** is K personas plus their sampling **weights**.
 
 **[1. The paper checks out.](#finding-1--the-paper-checks-out)** Verified at
 three levels of decreasing trust. The method has a training/inference split:
