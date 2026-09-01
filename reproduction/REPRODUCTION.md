@@ -32,7 +32,7 @@ We verified:
 
 Seven release bugs had to be fixed to run the code at all.
 
-**[2. Personas transfer across models; weights do not.](#finding-2--prompts-transfer-weights-must-be-refit)**
+**[2. Personas transfer across models; weights do not.](#finding-2--personas-transfer-weights-do-not)**
 Tested on Public Goods. A mixture has two learned parts — the persona texts
 and their weights — and they behave differently across backbones: moving
 GPT-4o's mixture to Gemini wholesale fails (W-dist 2.04–2.17 vs 0.43 at
@@ -141,7 +141,7 @@ history on this branch.
 
 ---
 
-## Finding 2 — Prompts transfer; weights must be refit
+## Finding 2 — Personas transfer; weights do not
 
 All transfer experiments use the **Public Goods** game (contribute $0–20 of
 an endowment to a group project); the transferred rows use the K=10 mixture
