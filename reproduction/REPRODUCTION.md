@@ -364,6 +364,46 @@ fit ran at ~96% of its theoretical optimum; details in the appendix).
 Notably, prompting for context-dependence also partially restores
 within-prompt behavioral noise (13/23 system prompts non-deterministic).
 
+### Example system prompts: 1D vs 2D
+
+The contrast between what 1D and 2D fitting produces is visible in the prompt
+texts themselves. Typical **1D-fitted** system prompts describe globally
+consistent characters (flash EM Public Goods):
+
+> *(target: contribute $0)* "You are a highly rational, self-interested
+> decision-maker... Your sole and absolute objective is to maximize your own
+> individual payoff... Do not consider collective benefits, social welfare,
+> fairness, or cooperation unless they directly and mathematically guarantee
+> a higher payoff for you..."
+
+> *(target: contribute $20)* "You are a highly cooperative,
+> community-oriented, and altruistic participant. In any collaborative
+> scenario... your primary objective is to maximize the collective
+> well-being... you must always choose to contribute your entire
+> allocation..."
+
+Asked any other question, these characters stay in character — which is
+exactly why every answer-pair lands on the diagonal. The **2D-fitted**
+prompts instead describe context-dependent people, including strongly
+*inconsistent* ones the 1D method can never produce:
+
+> *(targets: contribute $19, give $0)* "You are a pragmatic individual who
+> draws a sharp distinction between collective cooperation and individual
+> charity. When you are part of a group working toward a shared goal, you
+> are an exceptionally dedicated and enthusiastic team player... Conversely,
+> in anonymous, one-on-one situations where there is no mutual
+> collaboration, shared effort, or reciprocal benefit, you switch..."
+
+> *(targets: contribute $0, give $95)* "You are a person with a distinct
+> social outlook that changes dramatically depending on whether you are
+> dealing with a crowd or a single individual. When it comes to groups...
+> you are deeply cynical and distrustful... you refuse to pool your
+> resources... [but toward a single individual you are extraordinarily
+> generous]"
+
+Full texts for every fitted system prompt are in the artifact CSVs and
+`fit_trace.json` files (see the appendix's artifact index).
+
 **The price:** viewed game-by-game, the joint fit's histograms are ~1.5–2x
 worse than dedicated single-game fits (Public Goods 0.47 vs 0.31; Dictator
 1.56 vs 0.68) — on par with the paper's published GPT-4o quality, below our
