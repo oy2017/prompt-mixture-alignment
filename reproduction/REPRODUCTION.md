@@ -404,11 +404,30 @@ prompts instead describe context-dependent people, including strongly
 Full texts for every fitted system prompt are in the artifact CSVs and
 `fit_trace.json` files (see the appendix's artifact index).
 
-**The price:** viewed game-by-game, the joint fit's histograms are ~1.5–2x
-worse than dedicated single-game fits (Public Goods 0.47 vs 0.31; Dictator
-1.56 vs 0.68) — on par with the paper's published GPT-4o quality, below our
-best 1D fits. One fit that gets the *combinations* right, versus separate
-fits that get each game sharpest and the combinations entirely wrong.
+### The price: per-game accuracy of the two-game fit
+
+Method: take the K=100 two-game fit's 1,000 generated answer-pairs and look
+at each game's column separately (keep only the Public Goods answers, then
+only the Dictator answers). Score each column with the same 1D Wasserstein
+procedure used everywhere else in this document — against the full human
+data for that game. This makes the numbers directly comparable to the
+dedicated single-game fits:
+
+| Game (W-dist vs full human data) | from the two-game fit | dedicated single-game fit | paper's GPT-4o |
+|---|---|---|---|
+| Public Goods | 0.47 | **0.31** (flash EM, K=10) | 0.47 |
+| Dictator | 1.56 | **0.68** (flash EM, K=50) | 1.69 |
+
+The two-game fit's per-game histograms are ~1.5–2x less accurate than the
+dedicated fits — while still matching the paper's published GPT-4o quality
+on both games. Two causes: the 100 system prompts must serve both games at
+once (a dedicated fit spends all its resolution on one game), and the
+two-game fit was trained on the 2,520 participants who played *both* games
+while this comparison scores it against all players of each game (~19k for
+Public Goods), so part of the gap is a target-population mismatch rather
+than fitting error. Net: one fit that gets the *combinations* right versus
+separate fits that get each game sharpest and the combinations entirely
+wrong.
 
 ---
 
