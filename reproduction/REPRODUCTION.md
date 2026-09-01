@@ -278,11 +278,18 @@ prompt has more within-prompt variance than any crafted persona (std 0.00) —
 on Gemini, personas are precision instruments, not diversity generators, and
 the smarter tier collapses harder by default.
 
-**Pro focused runs (insight subset per scope decision):** EM Dictator
-(archived; eval pending quota), EM Banker and GB Dictator in the overnight
-queue. The pro model carries a hard daily quota on this key; the harness
-sleeps through exhaustion (`providers.api_call`) and resumes at the
-midnight-PT reset. Results will be appended when they land.
+**Pro focused runs (insight subset per scope decision) — complete:**
+
+| Pro run | W-dist | notes |
+|---|---|---|
+| EM Public Goods (K=10) | 0.44 | Wilcoxon pass; 10/10 zero-variance |
+| EM Dictator (K=50) | **0.49** | vs paper 1.69, human floor 0.39; 48/49 zero-variance |
+| EM Banker (K=50) | **2.22** | best Banker in the study (paper: 9.36); 37/37 zero-variance |
+| GB Dictator (maxIter=60) | 2.42 | Wilcoxon pass; 18/18 zero-variance; EM>GB gap wider on pro (0.49 vs 2.42) |
+
+The pro model carries a hard daily quota on this key; the harness sleeps
+through exhaustion (`providers.api_call`) and resumes at the midnight-PT
+reset — all four runs completed across two quota cycles unattended.
 
 **Artifacts.** Every fit: full EM/GB trajectory (initialization prompts,
 per-iteration allocations/updates, weight history) under
