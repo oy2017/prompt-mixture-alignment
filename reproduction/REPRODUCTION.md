@@ -15,12 +15,9 @@ practicalities, how to re-run everything, artifact index) are in
 
 ## Executive summary — five findings
 
-Terminology, used consistently below: a **persona** is one crafted system
-prompt — the paper's own term is "system prompt"; we use *persona* as its
-shorthand since the crafted prompts are character descriptions ("You are a
-cautious..."), and it should not be confused with the paper's *persona-based
-baselines* (PersonaHub, OASIS), which use predefined demographic personas. A
-fitted **mixture** is K personas plus their sampling **weights**.
+Terminology, used consistently below: a fitted **mixture** is K crafted
+**system prompts** (each a character description: "You are a cautious...")
+plus their sampling **weights**.
 
 **[1. The paper checks out.](#finding-1--the-paper-checks-out)** Verified at
 three levels of decreasing trust. The method has a training/inference split:
@@ -39,28 +36,28 @@ We verified:
 
 Seven release bugs had to be fixed to run the code at all.
 
-**[2. Personas transfer across models; weights do not.](#finding-2--personas-transfer-weights-do-not)**
-Tested on Public Goods. A mixture has two learned parts — the persona texts
+**[2. System prompts transfer across models; weights do not.](#finding-2--system-prompts-transfer-weights-do-not)**
+Tested on Public Goods. A mixture has two learned parts — the system prompt texts
 and their weights — and they behave differently across backbones: moving
 GPT-4o's mixture to Gemini wholesale fails (W-dist 2.04–2.17 vs 0.43 at
-home), but the persona texts themselves remain usable — refitting *only the
+home), but the system prompt texts themselves remain usable — refitting *only the
 weights* against the new backbone recovers most of the alignment (**0.57**),
 and a full refit recovers all of it (0.31). The mis-calibration is also
 family-shared: both Gemini tiers fail identically before reweighting.
 
 **[3. With a crafted system prompt, Gemini is perfectly deterministic — and
 the method works *better* than on
-GPT-4o.](#finding-3--gemini-personas-are-deterministic-the-mixture-is-a-lookup-table)**
-Every fitted persona gives one exact answer 100% of the time (survives
-temperature 2.0; personas have *less* variance than no persona at all). The
+GPT-4o.](#finding-3--gemini-system-prompts-are-deterministic-the-mixture-is-a-lookup-table)**
+Every fitted system prompt gives one exact answer 100% of the time (survives
+temperature 2.0; system prompts have *less* variance than no system prompt at all). The
 mixture becomes a weighted lookup table — and it beats the paper's GPT-4o
 results on **all 7 games** (e.g. Banker: W-dist 3.34 vs the paper's 9.36).
 
 **[4. EM beats GB on deterministic models, 7/7 — reversing the
 paper.](#finding-4--em-beats-gb-on-deterministic-models)** GB never revises
-a persona after adding it; EM rewrites personas every iteration. When each
-persona is locked to one exact answer (finding 3), choosing those answers
-well is everything, so the algorithm that can revise personas wins.
+a system prompt after adding it; EM rewrites system prompts every iteration. When each
+system prompt is locked to one exact answer (finding 3), choosing those answers
+well is everything, so the algorithm that can revise system prompts wins.
 
 **[5. Extending from 1D to 2D: proposed-but-untested in the paper; we ran
 it.](#finding-5--from-1d-to-2d)** `data/joint.csv` records the same
@@ -72,16 +69,16 @@ $0–100 to a stranger).
 - *Ground truth:* 2,520 real participants answered both games. Their two
   answers are nearly unrelated — correlation +0.06. Knowing someone's group
   contribution tells you almost nothing about their gift to a stranger.
-- *Step 1 — test the paper's 1D fit on a second game:* took the personas
+- *Step 1 — test the paper's 1D fit on a second game:* took the system prompts
   fitted on Public Goods only; asked each one both questions; generated
-  1,000 answer-pairs. **Result: correlation +1.00** — a persona's Public
+  1,000 answer-pairs. **Result: correlation +1.00** — a system prompt's Public
   Goods answer perfectly predicts its Dictator answer, unlike real people.
 - *Step 2 — try to fix it by re-tuning weights only:* kept the same
-  personas, re-optimized how often each is sampled to match the real pairs.
-  **Result: barely helps; correlation stays +1.0.** No persona behaves like
+  system prompts, re-optimized how often each is sampled to match the real pairs.
+  **Result: barely helps; correlation stays +1.0.** No system prompt behaves like
   the people needed (generous in one game, stingy in the other), and weights
-  can't create personas — only re-mix existing ones.
-- *Step 3 — craft new personas against both games at once*, telling the
+  can't create system prompts — only re-mix existing ones.
+- *Step 3 — craft new system prompts against both games at once*, telling the
   model people may behave differently in group vs one-on-one settings.
   **Result: correlation +0.055 vs human +0.057** — matches reality; overall
   2D mismatch close to the limit set by sampling noise.
@@ -149,7 +146,7 @@ own fitted weights:
 
 The independently fitted mixture slightly outperforms the published number
 and is statistically indistinguishable from the 19,109 human decisions under
-the rank-sum test. The learned components are interpretable personas spanning
+the rank-sum test. The learned components are interpretable system prompts spanning
 free-riders, strategic contributors, and altruists, mirroring the paper's
 interpretability claims.
 
@@ -163,7 +160,7 @@ history on this branch.
 
 ---
 
-## Finding 2 — Personas transfer; weights do not
+## Finding 2 — System prompts transfer; weights do not
 
 All transfer experiments use the **Public Goods** game (contribute $0–20 of
 an endowment to a group project); the transferred rows use the K=10 mixture
@@ -181,7 +178,7 @@ released prompts. 1,000 fresh samples per run:
 Per-component attribution localizes the transfer failure exactly. Each
 component was crafted to hit a target contribution; on flash:
 
-| component | weight | target | Gemini mean | persona |
+| component | weight | target | Gemini mean | system prompt |
 |---|---|---|---|---|
 | 0 | 0.138 | 0 | 0.00 | highly cautious, minimizes contributions |
 | 7 | 0.083 | 1 | 1.11 | conserves resources |
@@ -198,24 +195,24 @@ Low- and mid-target components transfer almost perfectly; every component
 targeting ≥ 12 saturates at exactly $20. Gemini reads "be generous" as
 maximal where GPT-4o produces graded values — and **pro fails identically to
 flash** (34.1% vs 34.0% of samples at $20, same components saturating), so
-persona→behavior calibration is a model-family trait, not a capability
+system prompt→behavior calibration is a model-family trait, not a capability
 effect.
 
 **The repair algorithm** is the paper's own weight-optimization step, re-run
-against the new backbone: hold the persona texts fixed, draw ~10 samples per
-persona *from the new model* to measure what each persona now produces, then
+against the new backbone: hold the system prompt texts fixed, draw ~10 samples per
+system prompt *from the new model* to measure what each system prompt now produces, then
 re-optimize the mixture weights against the human distribution (for
-deterministic personas this reduces to nearest-answer assignment — each human
-data point counts toward the persona whose answer is closest). W-dist drops
+deterministic system prompts this reduces to nearest-answer assignment — each human
+data point counts toward the system prompt whose answer is closest). W-dist drops
 from 2.04–2.17 to 0.57; a full refit (finding 3) reaches 0.31 — weight
 recalibration alone recovers about 80% of the gap at a small fraction of the
-API calls. The interpretation: persona *semantics* carry across models, but
+API calls. The interpretation: system prompt *semantics* carry across models, but
 the mapping from semantics to numeric behavior is model-specific, and the
 weights encode that calibration.
 
 ---
 
-## Finding 3 — Gemini personas are deterministic; the mixture is a lookup table
+## Finding 3 — Gemini system prompts are deterministic; the mixture is a lookup table
 
 ### From-scratch refits: the method self-corrects on every backbone — and the cheap model wins
 
@@ -254,7 +251,7 @@ run's 1,000-human-sample floor of 1.04). Pro, run on a focused subset:
 
 Per-component attribution over the evaluation samples:
 
-- Flash EM Public Goods: **10/10 components zero-variance** — each persona
+- Flash EM Public Goods: **10/10 components zero-variance** — each system prompt
   always answers one exact number. Support = exactly K values; entropy 3.19
   bits vs human 3.96. GPT-4o's mixture: 18 distinct values from K=10, with
   real within-component spread.
@@ -265,26 +262,26 @@ Per-component attribution over the evaluation samples:
 All the diversity in a Gemini mixture comes from the weights: the fitting
 loop learns a K-atom quantization of the human histogram. Wasserstein, mean,
 std, and Wilcoxon are all blind to the difference — the quantization
-*outscores* the persona population on every one of them. Only support size /
+*outscores* the system prompt population on every one of them. Only support size /
 entropy (or, weakly, KS) expose it. For social simulation — sampling a
-persona and interacting with it — the two mixtures are different objects:
-noisy person-like agents vs a lookup table in persona costume.
+system prompt and interacting with it — the two mixtures are different objects:
+noisy person-like agents vs a lookup table dressed as character descriptions.
 
 ### Determinism is not a sampling artifact
 
-A fitted flash persona answers identically 10/10 even at temperature 2.0
+A fitted flash system prompt answers identically 10/10 even at temperature 2.0
 (Gemini's maximum). The mechanism is deliberation: thinking models converge
-to the persona's "correct" answer regardless of sampling randomness, and the
+to the system prompt's "correct" answer regardless of sampling randomness, and the
 crafting loop selects for prompts that pin the mode. Response diversity on
 deliberative models is a prompting property, not a sampling property.
 
-### Personas remove variance rather than add it
+### System prompts remove variance rather than add it
 
 Fixed-prompt baseline ("You are a helpful assistant.", 1,000 samples): flash
 W-dist 4.02 (std 2.56 — 4 distinct values, 59.6% at $10); pro 3.49 (std 4.05
 — 3 distinct values, 80% at $10); paper's GPT-4o value 5.04. The *default*
-prompt has more within-prompt variance than any crafted persona (std 0.00) —
-on Gemini, personas are precision instruments, not diversity generators, and
+prompt has more within-prompt variance than any crafted system prompt (std 0.00) —
+on Gemini, system prompts are precision instruments, not diversity generators, and
 the smarter tier collapses harder by default.
 
 ---
@@ -314,11 +311,11 @@ is context-dependent: Spearman +0.291 across the two ultimatum roles
 (Proposer x Responder, n=5,291) but only +0.057 across different games
 (Public Goods x Dictator, n=2,520) — real people compartmentalize.
 
-### Stage A — what the 1D-fitted personas imply about the joint
+### Stage A — what the 1D-fitted system prompts imply about the joint
 
-Sample personas from a fitted mixture; each plays both games (independent
+Sample system prompts from a fitted mixture; each plays both games (independent
 calls); compare the induced joint to the human joint (2D earth-mover distance
-on normalized coordinates; the shuffle baseline destroys within-persona
+on normalized coordinates; the shuffle baseline destroys within-prompt
 coupling while preserving both histograms):
 
 | Arm (mixture used) | human rho | sim rho | EMD sim | EMD shuffle | EMD reweighted | floor |
@@ -327,20 +324,20 @@ coupling while preserving both histograms):
 | gpt-4o PG-mixture, PG x Dictator | +0.057 | +0.786 | 0.186 | 0.155 | 0.177 | 0.032 |
 | flash Proposer-mixture, Prop x Resp | +0.291 | **+0.295** | 0.075 | 0.078 | 0.069 | 0.027 |
 
-Deterministic personas produce *perfect* rank correlation — each is one 2D
-dot, and trait-ordering lines the dots up; GPT-4o's within-persona noise only
-softens this to +0.79. On the near-independent pair the persona coupling is
+Deterministic system prompts produce *perfect* rank correlation — each is one 2D
+dot, and trait-ordering lines the dots up; GPT-4o's within-prompt noise only
+softens this to +0.79. On the near-independent pair the system prompt coupling is
 *worse than assuming independence* (shuffle beats sim for both backbones).
-Persona trait-consistency is roughly constant across contexts while humans'
+System prompt trait-consistency is roughly constant across contexts while humans'
 is context-dependent — the same mechanism that ruins PG x Dictator almost
 exactly reproduces Proposer x Responder.
 
-![Same person, two games: 1D-fitted personas fall on a line; joint-fitted personas spread like real people](figures/2d_diagonal_vs_spread.png)
+![Same person, two games: 1D-fitted system prompts fall on a line; joint-fitted system prompts spread like real people](figures/2d_diagonal_vs_spread.png)
 
 ### Stage B — reweighting cannot fix it
 
 With components fixed, optimal weights reduce to assigning each human pair to
-its nearest persona dot. It barely helps (0.319 → 0.264 on flash;
+its nearest system prompt dot. It barely helps (0.319 → 0.264 on flash;
 correlation stays +1.0): all dots lie on the "consistent character" diagonal,
 and no reweighting can create the off-diagonal people (generous in one
 context, selfish in the other) who dominate the real joint. A coverage
@@ -357,7 +354,7 @@ behave differently* in group vs one-on-one settings (`code/craft2d.py`):
 | Spearman | +1.000 | +0.042 | +0.055 (reweighted) | +0.057 |
 | 2D EMD | 0.319 | 0.055 | **0.040** | floor 0.032 |
 
-The crafted personas hit off-diagonal targets exactly (e.g. contribute
+The crafted system prompts hit off-diagonal targets exactly (e.g. contribute
 $10/20 in Public Goods, give $0/100 in Dictator); correlation becomes
 statistically indistinguishable from human; the K=100 fit presses against the
 evaluation's own sampling resolution. K was chosen by numerically quantizing
@@ -365,7 +362,7 @@ the human pair data first (classical k-means / vector quantization — the
 K-vs-quality curve is computable with zero API calls, and the K=25 crafted
 fit ran at ~96% of its theoretical optimum; details in the appendix).
 Notably, prompting for context-dependence also partially restores
-within-persona behavioral noise (13/23 personas non-deterministic).
+within-prompt behavioral noise (13/23 system prompts non-deterministic).
 
 **The price:** viewed game-by-game, the joint fit's histograms are ~1.5–2x
 worse than dedicated single-game fits (Public Goods 0.47 vs 0.31; Dictator
@@ -388,7 +385,7 @@ a model family (finding 2).
 
 The deeper qualifications are mechanistic. On the Gemini family the method's
 excellent aggregate alignment is achieved by a deterministic K-atom
-quantization rather than a population of behaviorally noisy personas, and
+quantization rather than a population of behaviorally noisy system prompts, and
 none of the paper's evaluation metrics can distinguish the two (finding 3);
 the choice of algorithm interacts with that mechanism (finding 4); and the
 1D-fitted mixtures imply joint behavior no human population has, which only a

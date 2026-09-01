@@ -58,11 +58,11 @@ split-half floor 0.0227; quantization EMD 0.148 / 0.097 / 0.053 / 0.037 /
 0.030 / 0.027 at K = 5 / 10 / 25 / 60 / 100 / 150 — matching the Zador
 K^(-1/2) law in 2D. Validations: the greedy K=25 stage-C fit (0.0553) ran at
 ~96% of the K=25 theoretical optimum (0.0534), and the VQ-mode K=100 refit
-(`craft2d.py --mode vq`: k-means centroids up front, personas crafted in
+(`craft2d.py --mode vq`: k-means centroids up front, system prompts crafted in
 parallel) achieved 0.0398 — within ~25% of the human floor and pressing
 against the 1,000-draw evaluation's own sampling limit (shuffle of its own
 samples: 0.0336). Practical recipe: quantize the target data numerically,
-read K off the curve, craft one persona per centroid in parallel, weight by
+read K off the curve, craft one system prompt per centroid in parallel, weight by
 cluster mass. (The paper chose K heuristically by action-space size and
 reported insensitivity — true in 1D where the error curve is shallow past
 the knee, not in 2D.)
@@ -113,7 +113,7 @@ live in this branch's git history and read only `intermediate_results/` and
   allocations/updates, weight history) under
   `level3_<provider>_<alg>_<game>/`; 2D fits under
   `stageC_flash_PG_Dictator/` and `stageC_vq100_flash_PG_Dictator/` (crafted
-  personas, weights, fit trace with per-round targets and achieved atoms).
+  system prompts, weights, fit trace with per-round targets and achieved atoms).
 - **Evaluations** — prompts, weights, all 1,000 samples with per-component
   attribution (`eval_prompt_idx`), provider/model IDs, and metrics in
   `replay_results/*.json` + flat `*_samples.csv`; 2D paired samples with
