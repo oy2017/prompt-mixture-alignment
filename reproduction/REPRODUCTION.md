@@ -15,12 +15,16 @@ practicalities, how to re-run everything, artifact index) are in
 
 ## Executive summary — five findings
 
-**[1. The paper checks out.](#finding-1--the-paper-checks-out)** Its released
-artifacts recompute to the published tables (7 games x 2 algorithms);
-replaying its prompts with fresh API calls matches; a full from-scratch refit
-on the exact GPT-4o snapshot — done for one game, Public Goods — beats the
-published number (W-dist 0.43 vs 0.47). Seven release bugs had to be fixed to
-run the code at all.
+**[1. The paper checks out.](#finding-1--the-paper-checks-out)** Verified at
+three levels of decreasing trust. The method has a training/inference split:
+*training* = the fitting loop that produces a "checkpoint" (K system prompts
++ weights); *inference* = sampling that checkpoint against the game question.
+We (a) re-ran the *scoring math* on the authors' saved outputs — matches
+their tables (7 games x 2 algorithms); (b) re-ran *inference* on their
+released checkpoint with our own API calls — fresh samples score 0.57, inside
+their runs' 0.59–0.95 range; (c) re-ran *training* from scratch on the exact
+GPT-4o snapshot (one game, Public Goods) — beats the published number (W-dist
+0.43 vs 0.47). Seven release bugs had to be fixed to run the code at all.
 
 **[2. Prompts transfer across models if you refit the weights (using the
 paper's own weight-optimization step).](#finding-2--prompts-transfer-weights-must-be-refit)**
@@ -83,11 +87,15 @@ Emancipative Values Index pipeline was also verified: recomputing it from the
 raw WVS Wave 7 CSV gives mean 43.49 / std 18.22 (96,529 valid respondents)
 vs. the paper's 43.76 / 18.29.
 
-### Replaying the authors' fitted prompts with fresh API calls
+### Re-running inference on the authors' released checkpoint
 
-Saved system prompts from EM stability run 0, Public Goods (weights are not
-shipped, so they were re-fitted from 10 fresh samples per prompt), then 1,000
-fresh evaluation samples:
+The fitted artifact ("checkpoint") is the set of system prompts + weights.
+Here we keep the authors' checkpoint and re-run only inference with our own
+API calls — analogous to downloading released model weights and re-running
+the benchmark yourself instead of trusting the README. Saved system prompts
+from EM stability run 0, Public Goods (weights are not shipped, so they were
+re-fitted from 10 fresh samples per prompt), then 1,000 freshly generated
+evaluation samples:
 
 | Metric | This replay | Authors' 5 runs | Table 2 |
 |---|---|---|---|
@@ -97,7 +105,7 @@ fresh evaluation samples:
 | Wilcoxon rank-sum | pass (p = 0.195) | — | pass |
 | Kolmogorov–Smirnov | fail | — | fail |
 
-### Fitting the mixture from scratch on the paper's own backbone
+### Re-running training from scratch on the paper's own backbone
 
 `EM_moblab.py --game Public_Goods --K 10 --runs 1`, end-to-end on an
 independent account: random initialization, GPT-4o prompt-crafting loop, 5 EM
