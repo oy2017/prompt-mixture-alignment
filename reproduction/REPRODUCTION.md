@@ -34,9 +34,10 @@ Seven release bugs had to be fixed to run the code at all.
 
 **[2. Prompts transfer across models if you refit the weights (using the
 paper's own weight-optimization step).](#finding-2--prompts-transfer-weights-must-be-refit)**
-GPT-4o's fitted personas moved to Gemini flash: keeping GPT-4o's weights,
-W-dist 2.04–2.17 (failure); refitting only the weights from ~10 flash samples
-per persona, **0.57**; full refit from scratch, 0.31. About 80% of the
+Tested on Public Goods: GPT-4o's fitted personas moved to Gemini flash —
+keeping GPT-4o's weights, W-dist 2.04–2.17 (failure); refitting only the
+weights from ~10 flash samples per persona, **0.57**; full refit from
+scratch, 0.31. About 80% of the
 transfer gap closes with ~80 API calls instead of a full refit. (Both Gemini
 tiers fail identically without reweighting — the mis-calibration is
 family-shared.)
@@ -143,7 +144,9 @@ history on this branch.
 
 ## Finding 2 — Prompts transfer; weights must be refit
 
-The level-3 GPT-4o mixture (prompts *and* weights) replayed unchanged on
+All transfer experiments use the **Public Goods** game (contribute $0–20 of
+an endowment to a group project) and the K=10 mixture fitted on GPT-4o in
+finding 1(c). That mixture (prompts *and* weights) replayed unchanged on
 Gemini, 1,000 fresh samples per run:
 
 | Configuration | W-dist | mean / std | Wilcoxon |
