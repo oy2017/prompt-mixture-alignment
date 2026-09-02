@@ -11,8 +11,8 @@ and the artifact index.
   GPT-4o. Neither route honors `n>1`, so multi-sample requests were rewritten
   as parallel single-sample requests (`play()` in `code/EM_moblab.py` /
   `GB_moblab.py`); behavior identical.
-- **Level-2 replay weights**: the authors' repo does not ship fitted weights,
-  so the replay re-fitted them with a simplified objective (plain Wasserstein
+- **Level-2 replay weights**: the authors' repo does not ship learned weights,
+  so the replay re-learned them with a simplified objective (plain Wasserstein
   + small L2 regularizer, no KS discount term) from 10 samples per prompt.
 - **GB iteration budget**: flash/pro GB runs used maxIter=60 rather than the
   paper's 200; the paper's own convergence analysis shows GB stabilizes by
@@ -45,19 +45,19 @@ reason.
 **Quota handling.** The pro model carries a hard daily quota; requests can
 also be rate-limited within a day. `providers.api_call` retries transient
 errors with exponential backoff and sleeps through daily-quota exhaustion
-(resuming at the midnight-PT reset), so multi-hour fits and evaluations run
+(resuming at the midnight-PT reset), so multi-hour learning runs and evaluations run
 unattended across quota cycles.
 
 ## Methodology notes
 
 **The K-vs-quality curve (finding 5's K choice).** On deterministic
-backbones, fitting K weighted point-masses to a known distribution is
+backbones, learning K weighted point-masses to a known distribution is
 classical optimal quantization (Lloyd/k-means; Zador's theorem). Quantizing
 the human PG x Dictator joint numerically (zero API calls) yields:
 split-half floor 0.0227; quantization EMD 0.148 / 0.097 / 0.053 / 0.037 /
 0.030 / 0.027 at K = 5 / 10 / 25 / 60 / 100 / 150 — matching the Zador
-K^(-1/2) law in 2D. Validations: the greedy K=25 stage-C fit (0.0553) ran at
-~96% of the K=25 theoretical optimum (0.0534), and the VQ-mode K=100 refit
+K^(-1/2) law in 2D. Validations: the greedy K=25 stage-C mixture (0.0553) came in at
+~96% of the K=25 theoretical optimum (0.0534), and the VQ-mode K=100 re-learned mixture
 (`craft2d.py --mode vq`: k-means centroids up front, system prompts crafted in
 parallel) achieved 0.0398 — within ~25% of the human floor and pressing
 against the 1,000-draw evaluation's own sampling limit (shuffle of its own
@@ -81,7 +81,7 @@ export OPENROUTER_API_KEY=...      # for the GPT-4o arms
 export GEMINI_API_KEY=...          # for the Gemini arms
 cd code
 
-# Finding 1 — replay authors' prompts, then fit from scratch on GPT-4o:
+# Finding 1 — replay authors' prompts, then learn from scratch on GPT-4o:
 python replay_eval.py --alg EM --game Public_Goods --run 0
 python EM_moblab.py --game Public_Goods --K 10 --runs 1
 python replay_eval.py --alg EM --game Public_Goods \
@@ -115,11 +115,11 @@ live in this branch's git history and read only `intermediate_results/` and
 
 ## Artifact index
 
-- **Fits** — full EM/GB trajectory (initialization prompts, per-iteration
+- **Learned mixtures** — full EM/GB trajectory (initialization prompts, per-iteration
   allocations/updates, weight history) under
-  `level3_<provider>_<alg>_<game>/`; 2D fits under
+  `level3_<provider>_<alg>_<game>/`; 2D mixtures under
   `stageC_flash_PG_Dictator/`, `stageC_vq100_flash_PG_Dictator/`, and
-  `stageC_vq100_flash_Prop_Resp/` (crafted system prompts, weights, fit
+  `stageC_vq100_flash_Prop_Resp/` (crafted system prompts, weights, learning
   trace with per-round targets and achieved atoms).
 - **Evaluations** — prompts, weights, all 1,000 samples with per-component
   attribution (`eval_prompt_idx`), provider/model IDs, and metrics in
