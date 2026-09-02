@@ -102,8 +102,9 @@ PMA_PROVIDER=gemini python joint_eval.py --game-a Public_Goods --game-b Dictator
 python joint_analyze.py ../reproduction/joint_results/<tag>.json
 PMA_PROVIDER=gemini python craft2d.py --mode vq --rounds 100 --outdir <dir>
 
-# Finding 6 — individual-level prediction (zero API calls; any same-pair set
-# of joint_results files):
+# Side experiment (not in the main doc) — individual-level prediction:
+# guess one real person's answer from their other answer (zero API calls;
+# any same-pair set of joint_results files):
 python predict_joint.py ../reproduction/joint_results/stageA_flash_PG_Dictator.json \
     ../reproduction/joint_results/stageC_vq100_flash_PG_Dictator.json
 ```
@@ -123,14 +124,15 @@ live in this branch's git history and read only `intermediate_results/` and
 - **Evaluations** — prompts, weights, all 1,000 samples with per-component
   attribution (`eval_prompt_idx`), provider/model IDs, and metrics in
   `replay_results/*.json` + flat `*_samples.csv`; 2D paired samples with
-  embedded stage-B analysis in `joint_results/*.json`; the finding-6
-  prediction tables in `joint_results/individual_prediction.txt`.
+  embedded stage-B analysis in `joint_results/*.json`; the
+  individual-prediction side test's tables in
+  `joint_results/individual_prediction.txt`.
 - **Baselines** — the fixed-prompt baseline as a prompts-csv + weights-pkl
   pair under `baseline/`, runnable through `replay_eval.py` unchanged.
 - **Figures** — `figures/2d_diagonal_vs_spread.png`.
 - **Scripts** — `code/replay_eval.py` (evaluation harness),
   `code/prepare_gb_eval.py` (GB weight parser), `code/joint_eval.py` /
   `code/joint_analyze.py` (2D stages A/B), `code/craft2d.py` (2D crafting,
-  greedy + VQ modes), `code/predict_joint.py` (finding-6 individual
-  prediction, zero API calls), `code/providers.py` (backbone selection +
+  greedy + VQ modes), `code/predict_joint.py` (individual-prediction
+  side test, zero API calls), `code/providers.py` (backbone selection +
   quota-aware retry), `code/run_gemini_sweep.sh` (full-matrix driver).
